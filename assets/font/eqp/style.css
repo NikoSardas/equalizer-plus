@@ -1,0 +1,90 @@
+@font-face {
+  font-family: "equalizer";
+  src: url("fonts/equalizer.eot?gtywtq");
+  src: url("fonts/equalizer.eot?gtywtq#iefix") format("embedded-opentype"),
+    url("fonts/equalizer.ttf?gtywtq") format("truetype"),
+    url("fonts/equalizer.woff?gtywtq") format("woff"),
+    url("fonts/equalizer.svg?gtywtq#equalizer") format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+[class^="eqp-"],
+[class*=" eqp-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: "equalizer" !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.eqp-activity:before {
+  content: "\e900";
+}
+.eqp-check:before {
+  content: "\e901";
+}
+.eqp-chevron-down:before {
+  content: "\e902";
+}
+.eqp-chevron-left:before {
+  content: "\e903";
+}
+.eqp-chevron-right:before {
+  content: "\e904";
+}
+.eqp-chevron-up:before {
+  content: "\e905";
+}
+.eqp-moon:before {
+  content: "\e906";
+}
+.eqp-more-horizontal:before {
+  content: "\e907";
+}
+.eqp-more-vertical:before {
+  content: "\e908";
+}
+.eqp-music:before {
+  content: "\e909";
+}
+.eqp-power:before {
+  content: "\e90a";
+}
+.eqp-refresh-cw:before {
+  content: "\e90b";
+}
+.eqp-save:before {
+  content: "\e90c";
+}
+.eqp-settings:before {
+  content: "\e90d";
+}
+.eqp-sliders:before {
+  content: "\e913";
+}
+.eqp-sun:before {
+  content: "\e90e";
+}
+.eqp-volume:before {
+  content: "\e90f";
+}
+.eqp-volume-1:before {
+  content: "\e910";
+}
+.eqp-volume-2:before {
+  content: "\e911";
+}
+.eqp-volume-x:before {
+  content: "\e912";
+}
+.eqp-x:before {
+  content: "\e914";
+}

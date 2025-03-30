@@ -1,0 +1,26 @@
+{
+  "name": "Equalizer Plus",
+  "version": "1.2.4",
+  "description": "Unleash the Power of Personalized Audio in Chrome",
+  "manifest_version": 3,
+  "minimum_chrome_version": "116",
+  "offline_enabled": true,
+  "icons": {
+    "128": "assets/images/on.png"
+  },
+  "permissions": [
+    "activeTab",
+    "tabCapture",
+    "storage",
+    "notifications",
+    "offscreen"
+  ],
+  "action": {
+    "default_icon": "assets/images/on.png",
+    "default_popup": "popup.html",
+    "default_title": "EQ+"
+  },
+  "background": {
+    "service_worker": "js/serviceworker.js"
+  }
+}
