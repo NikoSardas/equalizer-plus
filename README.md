@@ -37,19 +37,31 @@ All logic is written in **vanilla JavaScript**, with basic use of jQuery and jQu
 ## 📦 Repository Structure
 
 equalizer-plus/
+
 ├── assets/                # Fonts and images
+
 │   ├── font/
+
 │   └── images/
+
 ├── js/                    # JavaScript source
+
 │   ├── libs/              # External libraries (jQuery, knob.js, nprogress)
+
 │   ├── offscreen.js
+
 │   ├── popup.js
+
 │   └── serviceworker.js
+
 ├── style/                 # CSS styles
 │   ├── nprogress.css
 │   └── style.css
+
 ├── manifest.json          # Chrome extension manifest
+
 ├── popup.html             # Extension UI
+
 └── package.json
 
 
