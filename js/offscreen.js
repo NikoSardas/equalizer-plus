@@ -494,8 +494,19 @@ class CapturedAudioObject {
 
     this.invert = invert;
   }
+
   stopAudio() {
     const { streamOutput, audioCtx } = this;
+
+    try {
+      streamOutput.disconnect();
+      this.volumeGainNode?.disconnect();
+      this.compressor?.disconnect();
+      Object.values(this.eq || {}).forEach((band) => band.disconnect?.());
+    } catch (e) {
+      console.warn('Disconnect error:', e);
+    }
+
     const audioTracks = streamOutput.mediaStream.getAudioTracks();
 
     if (audioTracks.length > 0) {
@@ -503,7 +514,6 @@ class CapturedAudioObject {
     }
 
     audioCtx.close();
-
     return true;
   }
   async resetSettings() {
@@ -532,25 +542,26 @@ class CapturedAudioObject {
 
     volumeGainNode.gain.value = 1;
   }
+
   setPan(val) {
-    let { pan } = this;
+    const clampedPan = Math.max(-1, Math.min(1, Number(val)));
+    this.pan = clampedPan;
 
     const { leftPanGain, rightPanGain, audioCtx } = this;
     const { currentTime } = audioCtx;
-    const fixedVal = Number(val);
 
-    pan = fixedVal;
+    pan = clampedPan;
 
     const leftGain = leftPanGain.gain;
     const rightGain = rightPanGain.gain;
 
     const change = (state) => {
       if (state) {
-        leftGain.setValueAtTime(1 - fixedVal, currentTime);
+        leftGain.setValueAtTime(1 - clampedPan, currentTime);
         rightGain.setValueAtTime(1, currentTime);
       } else {
         leftGain.setValueAtTime(1, currentTime);
-        rightGain.setValueAtTime(1 + fixedVal, currentTime);
+        rightGain.setValueAtTime(1 + clampedPan, currentTime);
       }
     };
 

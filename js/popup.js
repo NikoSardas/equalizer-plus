@@ -1,3 +1,4 @@
+
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   tabId = tabs[0].id;
 
@@ -36,7 +37,7 @@ const volumeFader = document.getElementById('volume'),
   rangeInputs = document.querySelectorAll('input[type="range"]'),
   volumeVal = document.getElementById('volumeVal'),
   collapseElements = document.querySelector('.collapse'),
-  app = document.getElementById('app');
+  app = document.getElementById('EQapp');
 
 function sendReadyMessage() {
   sendMessage({
@@ -269,7 +270,7 @@ async function loadModules(moduleSettings) {
 
   const { collapsed, saved } = storageObject;
   const { volume, mono, pan, eq, compressor, invert } = moduleSettings;
- 
+
   // console.log(volume, mono, pan, eq, compressor, invert);
   // console.log(tabId);
 
