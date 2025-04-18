@@ -3,8 +3,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (target !== 'worker') return;
 
-  console.log(message);
-
   switch (type) {
     case 'popupReady':
       const { tabId } = message;

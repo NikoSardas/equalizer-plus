@@ -1,4 +1,3 @@
-
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   tabId = tabs[0].id;
 
@@ -258,21 +257,14 @@ function displayCurrentVersion() {
 }
 
 async function loadModules(moduleSettings) {
-  console.log(moduleSettings);
   const storageObject = await chrome.storage.sync.get();
-  console.log(storageObject);
 
   if (moduleSettings === undefined) {
     moduleSettings = storageObject.settings;
   }
 
-  //  console.log(moduleSettings);
-
   const { collapsed, saved } = storageObject;
   const { volume, mono, pan, eq, compressor, invert } = moduleSettings;
-
-  // console.log(volume, mono, pan, eq, compressor, invert);
-  // console.log(tabId);
 
   if (mono != null) initMono(mono);
   if (invert != null) initInvert(invert);

@@ -3,8 +3,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (target !== 'offscreen') return;
 
-  console.log(message);
-
   const { value, type, tabId } = message;
 
   const index = tabId && getCapturedTabIndex(tabId);
@@ -549,8 +547,6 @@ class CapturedAudioObject {
 
     const { leftPanGain, rightPanGain, audioCtx } = this;
     const { currentTime } = audioCtx;
-
-    pan = clampedPan;
 
     const leftGain = leftPanGain.gain;
     const rightGain = rightPanGain.gain;
