@@ -1,6 +1,38 @@
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  tabId = tabs[0].id;
+const volumeFader = document.getElementById('volume');
+const fadersGrp = document.querySelectorAll('.fadersGrp input');
+const closeBtn = document.getElementById('close');
+const monoBtn = document.getElementById('monoBtn');
+const invertBtn = document.getElementById('invertBtn');
+const presetsSelect = document.getElementById('presets');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const loadSettingsBtn = document.getElementById('loadSettingsBtn');
+const deleteSettingsBtn = document.getElementById('deleteSettingsBtn');
+const resetBtn = document.getElementById('resetBtn');
+const collapseElement = document.getElementsByClassName('collapse')[0];
+const collapseToggle = document.getElementById('collapse-toggle');
+const rangeInputs = document.querySelectorAll('input[type="range"]');
+const volumeVal = document.getElementById('volumeVal');
+const versionLabelEl = document.getElementById('version');
+const app = document.getElementById('EQapp');
+const volumeIcon = document.getElementById('volume_icon');
+const panFader = $('#panFader');
+const panDiv = $('#panDiv');
+const DEFAULT_VOLUME = 1;
+const MIN_EQ_VALUE = -20;
+const DEFAULT_COMPRESSOR_KNEE = 4;
+const DEFAULT_COMPRESSOR_RELEASE = 0.2;
+const DEFAULT_COMPRESSOR_RATIO = 10;
+const DEFAULT_FADER_VALUE = 0;
+const DEFAULT_PRESET_LABEL = 'Presets';
+const DEFAULT_PAN_VALUE = 0;
 
+let tabId = null;
+
+function initPopup(tab) {
+  tabId = tab.id;
+
+  NProgress.configure({ showSpinner: false });
+  NProgress.start();
   NProgress.set(0.1);
 
   displayCurrentVersion();
@@ -9,42 +41,24 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 
   NProgress.done();
 
-  sendReadyMessage();
+  notifyWorkerReady();
+}
+
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  const [activeTab] = tabs || [];
+  if (!activeTab) {
+    return;
+  }
+
+  initPopup(activeTab);
 });
 
-//
+function displayCurrentVersion() {
+  const currentVersion = `V${chrome.runtime.getManifest().version}`;
 
-let tabId = null;
-
-NProgress.configure({ showSpinner: false });
-NProgress.start();
-
-const { sendMessage } = chrome.runtime;
-
-const volumeFader = document.getElementById('volume'),
-  fadersGrp = document.querySelectorAll('.fadersGrp input'),
-  closeBtn = document.getElementById('close'),
-  monoBtn = document.getElementById('monoBtn'),
-  invertBtn = document.getElementById('invertBtn'),
-  presetsSelect = document.getElementById('presets'),
-  saveSettingsBtn = document.getElementById('saveSettingsBtn'),
-  loadSettingsBtn = document.getElementById('loadSettingsBtn'),
-  deleteSettingsBtn = document.getElementById('deleteSettingsBtn'),
-  resetBtn = document.getElementById('resetBtn'),
-  collapseElement = document.getElementsByClassName('collapse')[0],
-  collapseToggle = document.getElementById('collapse-toggle'),
-  rangeInputs = document.querySelectorAll('input[type="range"]'),
-  volumeVal = document.getElementById('volumeVal'),
-  collapseElements = document.querySelector('.collapse'),
-  app = document.getElementById('EQapp');
-
-function sendReadyMessage() {
-  sendMessage({
-    target: 'worker',
-    type: 'popupReady',
-    tabId,
-  });
+  versionLabelEl.textContent = currentVersion;
 }
+
 
 function setPopupListener(currentTabId) {
   chrome.runtime.onMessage.addListener(async (message) => {
@@ -54,27 +68,145 @@ function setPopupListener(currentTabId) {
     if (target !== 'popup') return;
 
     if (type === 'load') {
-      loadModules(settings).then(() => {
-        displayUI();
-      });
+      await loadModules(settings);
+      showUI();
     }
   });
 }
 
-function setCompressorNumDisplayValue(displayVal, id) {
-  const compFaderValDisplay = document.getElementById(`${id}Val`);
-  compFaderValDisplay.textContent = displayVal;
+function handleFaderInput({ target }) {
+  const { id, classList } = target;
+  let currentValue = Number(target.value);
+
+  if (classList.contains('eqFader') && currentValue === MIN_EQ_VALUE) {
+    currentValue *= 2;
+  } else if (classList.contains('compressorFader')) {
+    setCompressorNumDisplayValue(currentValue, id);
+  }
+
+  paintSliderBg(target);
+
+  chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: id,
+    value: currentValue,
+    tabId,
+  });
 }
 
-function displayUI() {
-  paintAllSliders();
-  app.classList.remove('opaque');
+function handleFaderReset({ target }) {
+  let { value, id, classList } = target;
+
+  switch (id) {
+    case 'knee':
+      value = DEFAULT_COMPRESSOR_KNEE;
+      break;
+    case 'release':
+      value = DEFAULT_COMPRESSOR_RELEASE;
+      break;
+    case 'ratio':
+      value = DEFAULT_COMPRESSOR_RATIO;
+      break;
+    default:
+      value = DEFAULT_FADER_VALUE;
+  }
+
+  target.value = value;
+
+  if (classList.contains('compressorFader')) {
+    setCompressorNumDisplayValue(value, id);
+  }
+
+  paintSliderBg(target);
+
+  chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: id,
+    value,
+    tabId,
+  });
+}
+
+async function handleCollapseToggleClick() {
+  const isExpanded = collapseToggle.classList.toggle('open');
+  collapseElement.style.display = isExpanded ? 'block' : 'none';
+  collapseToggle.setAttribute('aria-expanded', String(isExpanded));
+
+  await chrome.storage.sync.set({ collapsed: !isExpanded });
+}
+
+async function handleCloseClick() {
+  const powerOffResponse = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'powerOff',
+    tabId,
+  });
+
+  if (powerOffResponse.success) {
+    window.close();
+  }
+}
+
+async function handleMonoClick() {
+  const isMono = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'getMono',
+    tabId,
+  });
+
+  setMono(!isMono);
+}
+
+async function handleInvertClick() {
+  const isInverted = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'getInvert',
+    tabId,
+  });
+
+  setInvert(!isInverted);
+}
+
+function handlePresetsChange(event) {
+  loadEqPreset(event.target.value);
+}
+
+function handleSaveClick() {
+  saveSettings();
+  showLoadActions();
+}
+
+function handleLoadClick() {
+  chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'loadSavedSettings',
+    tabId,
+  });
+}
+
+function handleDeleteClick() {
+  chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'deleteSavedSettings',
+    tabId,
+  });
+
+  showSaveActions();
+}
+
+function handleResetClick() {
+  chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'reset',
+    tabId,
+  });
+
+  presetsSelect.value = DEFAULT_PRESET_LABEL;
 }
 
 function loadUIListeners() {
   volumeFader.addEventListener('input', ({ target }) => {
     const { value } = target;
-    const volumeIcon = document.getElementById('volume_icon');
 
     if (value === 0) {
       volumeIcon.classList = 'eqp-volume';
@@ -87,184 +219,65 @@ function loadUIListeners() {
   });
 
   volumeFader.addEventListener('dblclick', ({ target }) => {
-    const defaultValue = 1;
-
-    volumeFader.value = defaultValue;
-    changeVolume(defaultValue);
+    volumeFader.value = DEFAULT_VOLUME;
+    changeVolume(DEFAULT_VOLUME);
     paintSliderBg(target);
   });
 
   fadersGrp.forEach((fader) => {
-    fader.addEventListener('input', ({ target }) => {
-      const { id, classList } = target;
-      let currentValue = Number(target.value);
-      const minimumEqValue = -20;
-
-      if (classList.contains('eqFader') && currentValue === minimumEqValue) {
-        currentValue *= 2;
-      } else if (classList.contains('compressorFader')) {
-        setCompressorNumDisplayValue(currentValue, id);
-      }
-
-      paintSliderBg(target);
-
-      sendMessage({
-        target: 'offscreen',
-        type: id,
-        value: currentValue,
-        tabId,
-      });
-    });
-
-    fader.addEventListener('dblclick', ({ target }) => {
-      let { value, id, classList } = target;
-      const kneeDefaultValue = 4;
-      const releaseDefaultValue = 0.2;
-      const ratioDefaultValue = 10;
-      const defaultValue = 0;
-
-      switch (id) {
-        case 'knee':
-          value = kneeDefaultValue;
-          break;
-        case 'release':
-          value = releaseDefaultValue;
-          break;
-        case 'ratio':
-          value = ratioDefaultValue;
-          break;
-        default:
-          value = defaultValue;
-      }
-
-      target.value = value;
-
-      if (classList.contains('compressorFader')) {
-        setCompressorNumDisplayValue(value, id);
-      }
-
-      paintSliderBg(target);
-
-      sendMessage({
-        target: 'offscreen',
-        type: id,
-        value,
-        tabId,
-      });
-    });
+    fader.addEventListener('input', handleFaderInput);
+    fader.addEventListener('dblclick', handleFaderReset);
   });
 
-  collapseToggle.addEventListener('click', async () => {
-    collapseToggle.classList.toggle('open');
+  collapseToggle.addEventListener('click', handleCollapseToggleClick);
+  closeBtn.addEventListener('click', handleCloseClick);
+  monoBtn.addEventListener('click', handleMonoClick);
+  invertBtn.addEventListener('click', handleInvertClick);
+  presetsSelect.addEventListener('change', handlePresetsChange);
+  saveSettingsBtn.addEventListener('click', handleSaveClick);
+  loadSettingsBtn.addEventListener('click', handleLoadClick);
+  deleteSettingsBtn.addEventListener('click', handleDeleteClick);
+  resetBtn.addEventListener('click', handleResetClick);
+}
 
-    const isCollapsed = !collapseToggle.classList.contains('open');
-
-    if (isCollapsed) {
-      collapseElements.style.display = 'none';
-    } else {
-      collapseElements.style.display = 'block';
-    }
-
-    await chrome.storage.sync.set({ collapsed: isCollapsed });
-  });
-
-  closeBtn.addEventListener('click', async () => {
-    const powerOff = await sendMessage({
-      target: 'offscreen',
-      type: 'powerOff',
-      tabId,
-    });
-
-    if (powerOff.success) {
-      window.close();
-    }
-  });
-
-  monoBtn.addEventListener('click', async () => {
-    const mono = await sendMessage({
-      target: 'offscreen',
-      type: 'getMono',
-      tabId,
-    });
-
-    setMono(!mono);
-  });
-
-  invertBtn.addEventListener('click', async () => {
-    const invert = await sendMessage({
-      target: 'offscreen',
-      type: 'getInvert',
-      tabId,
-    });
-
-    setInvert(!invert);
-  });
-
-  presetsSelect.addEventListener('change', ({ target }) => {
-    loadEqPreset(target.value);
-  });
-
-  saveSettingsBtn.addEventListener('click', () => {
-    saveSettings();
-    showLoadBtn();
-  });
-
-  loadSettingsBtn.addEventListener('click', () => {
-    sendMessage({
-      target: 'offscreen',
-      type: 'loadSavedSettings',
-      tabId,
-    });
-  });
-
-  deleteSettingsBtn.addEventListener('click', () => {
-    sendMessage({
-      target: 'offscreen',
-      type: 'deleteSavedSettings',
-      tabId,
-    });
-
-    showSaveBtn();
-  });
-
-  resetBtn.addEventListener('click', () => {
-    sendMessage({
-      target: 'offscreen',
-      type: 'reset',
-      tabId,
-    });
-
-    presetsSelect.value = 'Presets';
+function notifyWorkerReady() {
+  chrome.runtime.sendMessage({
+    target: 'worker',
+    type: 'popupReady',
+    tabId,
   });
 }
 
-function paintSliderBg(el) {
-  const p = Math.ceil(((el.value - el.min) / (el.max - el.min)) * 100);
-  el.style.backgroundImage = `linear-gradient(to right, #f59821 ${p}%, transparent ${p}%)`;
+function setCompressorNumDisplayValue(value, id) {
+  const valueEl = document.getElementById(`${id}Val`);
+  if (!valueEl) return;
+  valueEl.textContent = value;
 }
 
-function paintAllSliders() {
+function showUI() {
+  updateAllSliderBackgrounds();
+  app.classList.remove('opaque');
+}
+
+function paintSliderBg(sliderEl) {
+  const percent = Math.ceil(
+    ((sliderEl.value - sliderEl.min) / (sliderEl.max - sliderEl.min)) * 100,
+  );
+  sliderEl.style.backgroundImage = `linear-gradient(to right, #f59821 ${percent}%, transparent ${percent}%)`;
+}
+
+function updateAllSliderBackgrounds() {
   rangeInputs.forEach((input) => {
     paintSliderBg(input);
   });
 }
 
-function displayCurrentVersion() {
-  const versionElement = document.getElementById('version');
-  const currentVersion = `V${chrome.runtime.getManifest().version}`;
-
-  versionElement.textContent = currentVersion;
-}
-
 async function loadModules(moduleSettings) {
   const storageObject = await chrome.storage.sync.get();
-
-  if (moduleSettings === undefined) {
-    moduleSettings = storageObject.settings;
-  }
+  const settings = moduleSettings ?? storageObject.settings;
 
   const { collapsed, saved } = storageObject;
-  const { volume, mono, pan, eq, compressor, invert } = moduleSettings;
+  const { volume, mono, pan, eq, compressor, invert } = settings;
 
   if (mono != null) initMono(mono);
   if (invert != null) initInvert(invert);
@@ -273,35 +286,35 @@ async function loadModules(moduleSettings) {
   if (eq != null) initEq(eq);
   if (volume != null) initVolume(volume);
 
-  showSavedButton(saved);
+  updateSavedActions(saved);
 }
 
-function getNotification(notification) {
+function getNotification(message) {
   return {
     type: 'basic',
     iconUrl: '../assets/images/on.png',
     title: 'Equalizer Plus',
-    message: notification,
+    message,
     priority: 1,
   };
 }
 
-async function showNotification(notification) {
-  if (typeof notification !== 'string') {
-    handleError('Invalid notification string:', notification);
-    return;
+async function showNotification(message) {
+  if (typeof message !== 'string') {
+    handleError('Invalid notification string:', message);
   }
-  await chrome.notifications.create(getNotification(notification));
+  await chrome.notifications.create(getNotification(message));
 }
 
 function handleError(message = 'An error occurred', error = null) {
-  console.error(error);
+  if (error instanceof Error) {
+    throw error;
+  }
+
+  throw new Error(message);
 }
 
 function initPan(pan) {
-  const panFader = $('#panFader');
-  const panDiv = $('#panDiv');
-
   panFader.knob({
     fgColor: '#f59821',
     bgColor: 'white',
@@ -314,24 +327,27 @@ function initPan(pan) {
     width: '50',
     height: '50',
     change: (v) => {
+      updatePanAria(v);
       setPan(Number(v).toFixed(1));
     },
   });
 
   panFader.val(Number(pan.toFixed(1))).trigger('change');
   setPan(pan);
+  updatePanAria(pan);
 
   panDiv.on('dblclick', () => {
-    panFader.val(0).trigger('change');
-    setPan(0);
+    panFader.val(DEFAULT_PAN_VALUE).trigger('change');
+    setPan(DEFAULT_PAN_VALUE);
+    updatePanAria(DEFAULT_PAN_VALUE);
   });
 }
 
-function setPan(value) {
-  sendMessage({
+function setPan(panValue) {
+  chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'pan',
-    value,
+    value: panValue,
     tabId,
   });
 }
@@ -340,71 +356,69 @@ function initMono(mono) {
   setMonoButton(mono);
 }
 
-function setMonoButton(state) {
-  monoBtn.checked = state;
+function setMonoButton(isEnabled) {
+  monoBtn.checked = isEnabled;
 }
 
-async function setMono(value) {
-  await sendMessage({
+async function setMono(isMono) {
+  await chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'setMono',
-    value,
+    value: isMono,
     tabId,
   });
 
-  setMonoButton(value);
+  setMonoButton(isMono);
 }
 
 function initInvert(invert) {
   setInvertButton(invert);
 }
 
-function setInvertButton(state) {
-  invertBtn.checked = state;
+function setInvertButton(isEnabled) {
+  invertBtn.checked = isEnabled;
 }
 
-async function setInvert(value) {
-  await sendMessage({
+async function setInvert(isInverted) {
+  await chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'setInvert',
-    value,
+    value: isInverted,
     tabId,
   });
 
-  setInvertButton(value);
+  setInvertButton(isInverted);
 }
 
-function initCompressor(compSettings, collapsed) {
+function initCompressor(compressorSettings, collapsed) {
   setCollapsed(collapsed);
 
-  Object.entries(compSettings).forEach(([key, value]) => {
-    const sliderPosition = document.getElementById(key);
-    const numberValue = document.getElementById(`${key}Val`);
+  Object.entries(compressorSettings).forEach(([key, value]) => {
+    const sliderEl = document.getElementById(key);
+    const valueEl = document.getElementById(`${key}Val`);
 
-    sliderPosition.value = value;
-    numberValue.textContent = Math.round((value + Number.EPSILON) * 100) / 100;
+    sliderEl.value = value;
+    valueEl.textContent = Math.round((value + Number.EPSILON) * 100) / 100;
   });
 }
 
-function setCollapsed(collapsed) {
-  const hide = () => {
-    collapseElement.classList.remove('open');
-    collapseToggle.classList.remove('open');
-  };
-  const show = () => {
-    collapseElement.classList.add('open');
-    collapseToggle.classList.add('open');
-  };
+function setCollapsed(isCollapsed) {
+  const isExpanded = !isCollapsed;
+  collapseElement.classList.toggle('open', isExpanded);
+  collapseToggle.classList.toggle('open', isExpanded);
+  collapseToggle.setAttribute('aria-expanded', String(isExpanded));
+}
 
-  collapsed ? hide() : show();
+function updatePanAria(value) {
+  panFader.attr('aria-valuenow', Number(value).toFixed(1));
 }
 
 function initEq(eqSettings) {
   Object.keys(eqSettings).forEach((key) => {
-    const eqBand = document.getElementById(key);
-    const currentValue = eqSettings[key];
+    const bandEl = document.getElementById(key);
+    const value = eqSettings[key];
 
-    eqBand.value = currentValue;
+    bandEl.value = value;
   });
 }
 
@@ -434,75 +448,80 @@ function loadEqPreset(name) {
     vocalBooster: [-5, -10, -10, 4, 12, 12, 10, 5, 0, -5],
   };
 
-  const item = eqPresets[name];
+  const presetValues = eqPresets[name];
+  if (!presetValues) {
+    throw new Error(`Unknown preset: ${name}`);
+  }
 
-  const preset = {
-    twenty: item[0],
-    fifty: item[1],
-    oneHundred: item[2],
-    twoHundred: item[3],
-    fiveHundred: item[4],
-    oneThousand: item[5],
-    twoThousand: item[6],
-    fiveThousand: item[7],
-    tenThousand: item[8],
-    twentyThousand: item[9],
+  const presetPayload = {
+    twenty: presetValues[0],
+    fifty: presetValues[1],
+    oneHundred: presetValues[2],
+    twoHundred: presetValues[3],
+    fiveHundred: presetValues[4],
+    oneThousand: presetValues[5],
+    twoThousand: presetValues[6],
+    fiveThousand: presetValues[7],
+    tenThousand: presetValues[8],
+    twentyThousand: presetValues[9],
   };
 
-  sendMessage({
+  chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'loadPreset',
     tabId,
-    preset,
+    preset: presetPayload,
   });
 }
 
-function initVolume(volume) {
-  volumeFader.value = volume;
+function initVolume(volumeValue) {
+  volumeFader.value = volumeValue;
 
-  setVolumeNumber(volume);
+  setVolumeNumber(volumeValue);
 }
 
-function setVolume(value) {
-  sendMessage({
+function setVolume(volumeValue) {
+  chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'volume',
     tabId,
-    value,
+    value: volumeValue,
   });
 }
 
-function setVolumeNumber(value) {
-  volumeVal.textContent = `${
-    (100 * Math.round(Number(value) * 100 + Number.EPSILON)) / 100
-  }%`;
+function formatVolumePercent(volumeValue) {
+  return `${(100 * Math.round(Number(volumeValue) * 100 + Number.EPSILON)) / 100}%`;
 }
 
-function changeVolume(value) {
-  setVolume(value);
-  setVolumeNumber(value);
+function setVolumeNumber(volumeValue) {
+  volumeVal.textContent = formatVolumePercent(volumeValue);
 }
 
-function showSavedButton(saved) {
-  saved ? showLoadBtn() : showSaveBtn();
+function changeVolume(volumeValue) {
+  setVolume(volumeValue);
+  setVolumeNumber(volumeValue);
+}
+
+function updateSavedActions(isSaved) {
+  isSaved ? showLoadActions() : showSaveActions();
 }
 
 function saveSettings() {
-  sendMessage({
+  chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'saveSettings',
     tabId,
   });
 }
 
-function showLoadBtn() {
-  document.getElementById('saveSettingsBtn').classList.add('hidden');
-  document.getElementById('deleteSettingsBtn').classList.remove('hidden');
-  document.getElementById('loadSettingsBtn').classList.remove('hidden');
+function showLoadActions() {
+  saveSettingsBtn.classList.add('hidden');
+  deleteSettingsBtn.classList.remove('hidden');
+  loadSettingsBtn.classList.remove('hidden');
 }
 
-function showSaveBtn() {
-  document.getElementById('saveSettingsBtn').classList.remove('hidden');
-  document.getElementById('deleteSettingsBtn').classList.add('hidden');
-  document.getElementById('loadSettingsBtn').classList.add('hidden');
+function showSaveActions() {
+  saveSettingsBtn.classList.remove('hidden');
+  deleteSettingsBtn.classList.add('hidden');
+  loadSettingsBtn.classList.add('hidden');
 }

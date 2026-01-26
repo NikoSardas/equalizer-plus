@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
     <link rel="stylesheet" href="/style/nprogress.css" />
     <link rel="stylesheet" href="/style/style.css" />
     <link rel="stylesheet" href="/assets/font/eqp/style.css" />
@@ -11,17 +12,19 @@
       <h1 class="title header-brand" id="title">EQ+</h1>
       <p id="version"></p>
       <div class="header-buttons">
-        <span class="btn btn-sm header-btn" id="close"
-          ><i class="eqp-x"></i
-        ></span>
+        <button class="btn btn-sm header-btn" id="close" type="button" aria-label="Close">
+          <i class="eqp-x" aria-hidden="true"></i>
+        </button>
       </div>
     </header>
-    <div class="opaque" id="EQapp">
+    <div class="opaque" id="EQapp" role="main">
       <div class="options-bar block" id="bottom">
         <div class="_inner">
           <div class="col sel-col">
-            <select class="eqGrp info sel" id="presets">
-              <option id="presetPlaceholder" s>Presets</option>
+            <select class="eqGrp info sel" id="presets" aria-label="Presets">
+              <option id="presetPlaceholder" disabled selected hidden>
+                Presets
+              </option>
               <option id="acoustic" value="acoustic">Acoustic</option>
               <option id="bassBooster" value="bassBooster">Bass Booster</option>
               <option id="bassReducer" value="bassReducer">Bass Reducer</option>
@@ -54,12 +57,19 @@
             </select>
           </div>
           <button class="info btn" id="saveSettingsBtn">
-            <i class="eqp-save icon-left"></i> Save
+            <i class="eqp-save icon-left" aria-hidden="true"></i> Save
           </button>
           <button class="hidden info btn" id="loadSettingsBtn">Load</button>
-          <button class="info hidden btn" id="deleteSettingsBtn">&#88;</button>
+          <button
+            class="info hidden btn"
+            id="deleteSettingsBtn"
+            type="button"
+            aria-label="Delete saved settings"
+          >
+            &#88;
+          </button>
           <button class="info btn" id="resetBtn">
-            <i class="eqp-refresh-cw icon-left"></i> Reset
+            <i class="eqp-refresh-cw icon-left" aria-hidden="true"></i> Reset
           </button>
         </div>
         <div id="tabs">
@@ -73,6 +83,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="32 Hz"
                 />
                 <label for="twenty">32</label>
               </div>
@@ -84,6 +95,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="64 Hz"
                 />
                 <label for="fifty">64</label>
               </div>
@@ -95,6 +107,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="125 Hz"
                 />
                 <label for="oneHundred">125</label>
               </div>
@@ -106,6 +119,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="250 Hz"
                 />
                 <label for="twoHundred">250</label>
               </div>
@@ -117,6 +131,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="500 Hz"
                 />
                 <label for="fiveHundred">500</label>
               </div>
@@ -128,6 +143,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="1 kHz"
                 />
                 <label for="oneThousand">1k</label>
               </div>
@@ -139,6 +155,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="2 kHz"
                 />
                 <label for="twoThousand">2k</label>
               </div>
@@ -150,6 +167,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="4 kHz"
                 />
                 <label for="fiveThousand">4k</label>
               </div>
@@ -161,6 +179,7 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="8 kHz"
                 />
                 <label for="tenThousand">8k</label>
               </div>
@@ -172,15 +191,21 @@
                   min="-20"
                   max="20"
                   step="1"
+                  aria-label="16 kHz"
                 />
                 <label for="twentyThousand">16k</label>
               </div>
             </div>
           </div>
-          <h5 id="collapse-toggle">
-            <i class="eqp-chevron-down"></i
-            ><span id="compressor">COMPRESSOR</span>
-          </h5>
+          <button
+            id="collapse-toggle"
+            type="button"
+            aria-expanded="true"
+            aria-controls="advanced"
+          >
+            <i class="eqp-chevron-down" aria-hidden="true"></i>
+            <span id="compressor">Compressor</span>
+          </button>
           <div class="tab active collapse" id="advanced">
             <div class="faders fadersGrp" id="allFaders">
               <div class="adv-row">
@@ -189,7 +214,12 @@
                     <label class="_left" id="thresholdLabel" for="threshold"
                       >THRESHOLD</label
                     >
-                    <div class="faderVal _right" id="thresholdVal"></div>
+                    <div
+                      class="faderVal _right"
+                      id="thresholdVal"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    ></div>
                   </div>
                   <input
                     class="compressorFader info"
@@ -205,7 +235,12 @@
                     <label class="_left" id="attackLabel" for="attack"
                       >ATTACK</label
                     >
-                    <div class="faderVal _right" id="attackVal"></div>
+                    <div
+                      class="faderVal _right"
+                      id="attackVal"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    ></div>
                   </div>
                   <input
                     class="compressorFader info"
@@ -221,7 +256,14 @@
                     <label class="_left" id="releaseLabel" for="release"
                       >RELEASE</label
                     >
-                    <div class="faderVal _right" id="releaseVal">RELEASE</div>
+                    <div
+                      class="faderVal _right"
+                      id="releaseVal"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      RELEASE
+                    </div>
                   </div>
                   <input
                     class="compressorFader info"
@@ -237,7 +279,12 @@
                     <label class="_left" id="ratioLabel" for="ratio"
                       >RATIO</label
                     >
-                    <div class="faderVal _right" id="ratioVal"></div>
+                    <div
+                      class="faderVal _right"
+                      id="ratioVal"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    ></div>
                   </div>
                   <input
                     class="compressorFader info"
@@ -251,7 +298,12 @@
                 <div class="advanced compressorGrp range range-h">
                   <div class="_labels">
                     <label class="_left" id="kneeLabel" for="knee">KNEE</label>
-                    <div class="faderVal _right" id="kneeVal"></div>
+                    <div
+                      class="faderVal _right"
+                      id="kneeVal"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    ></div>
                   </div>
                   <input
                     class="compressorFader info"
@@ -277,13 +329,18 @@
                 data-cursor="true"
                 datatype="i18n"
                 type="text"
+                role="slider"
+                aria-label="Pan"
+                aria-valuemin="-1"
+                aria-valuemax="1"
+                aria-valuenow="0"
               />
               <span>Pan</span>
             </div>
           </div>
           <div class="_right">
             <div class="volume">
-              <i id="volume_icon" class="eqp-volume-2"></i>
+              <i id="volume_icon" class="eqp-volume-2" aria-hidden="true"></i>
               <input
                 class="volFader info"
                 id="volume"
@@ -292,8 +349,15 @@
                 value="1"
                 min="0"
                 max="4"
+                aria-label="Volume"
               />
-              <label class="_right" id="volumeVal" for="volume"></label>
+              <label
+                class="_right"
+                id="volumeVal"
+                for="volume"
+                aria-live="polite"
+                aria-atomic="true"
+              ></label>
             </div>
             <label class="radio square mono">
               <input id="monoBtn" type="checkbox" /><b></b
@@ -307,6 +371,15 @@
         </div>
       </div>
     </div>
+    <a
+      class="donate-btn"
+      href="https://buymeacoffee.com/nikosardas"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Donate"
+    >
+      <img src="/assets/images/donation-heart.svg" alt="" />
+    </a>
     <script src="js/libs/jquery.min.js"></script>
     <script src="js/libs/jquery.knob.min.js"></script>
     <script src="js/libs/nprogress.js"></script>

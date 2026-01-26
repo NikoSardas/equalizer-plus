@@ -8,16 +8,13 @@
       "service_worker": "js/serviceworker.js"
    },
    "description": "Unleash the Power of Personalized Audio in Chrome",
-   "differential_fingerprint": "1.b76a5cccaafcdaa123f5013bbd9f99eca77ae439980798c27389c6104e987ce5",
    "icons": {
       "128": "assets/images/on.png"
    },
-   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAncJfBQwpb28y7e5k64vmWtdJGJfTN/NYvFh+wovw8kEwTKrvsW/0CXDArM7y26FmAQBmfnlN5Bz32oNaFBlemv6toaqVsD3u+i0IcuHfcltatyJtP3LU02Ipiwufm6fljOrWLJYfz5S5vtjMp4DmAiNqrphA+tHl+F1JydhuC/8XnN2BieZFS0zAoKaakzCxGU8DIEZ6FDQPN7/MwhETHuAnLo9juIbeRyC3CHmTthlHRaOA2P1sWuxg5tXe9Xz86MAKPqhMXT4GDqXk39/bBi7rRwSCBmnDaETGwJs+A6n2S7+AypUmEGuRX8PCgNXuPxkpwCkXScUCiY/BIH07zQIDAQAB",
    "manifest_version": 3,
    "minimum_chrome_version": "116",
    "name": "Equalizer Plus",
    "offline_enabled": true,
    "permissions": [ "activeTab", "tabCapture", "storage", "notifications", "offscreen" ],
-   "update_url": "https://clients2.google.com/service/update2/crx",
-   "version": "1.2.7"
+   "version": "1.2.9"
 }

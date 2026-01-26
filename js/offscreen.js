@@ -1,193 +1,295 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  return handleOffscreenMessage(message, sender, sendResponse);
+});
+
+function handleOffscreenMessage(message, sender, sendResponse) {
   const { target } = message;
 
   if (target !== 'offscreen') return;
 
-  const { value, type, tabId } = message;
-
-  const index = tabId && getCapturedTabIndex(tabId);
+  const { value, type, tabId, streamId } = message;
+  const capturedTabIndex = tabId != null ? getCapturedTabIndex(tabId) : -1;
+  const capturedTab = capturedTabsArr[capturedTabIndex];
 
   switch (type) {
     case 'captureTab':
-      captureTab(message.streamId, tabId);
+      captureTab(streamId, tabId);
       break;
 
     case 'loadCapturedTab':
-      loadCapturedTab(index, tabId);
+      loadCapturedTab(capturedTabIndex, tabId);
       break;
 
     case 'powerOff':
-      powerOff(index);
+      powerOff(capturedTabIndex);
       sendResponse({ success: true });
       break;
 
     case 'reset':
-      capturedTabsArr[index].resetSettings().then(() => {
-        loadCapturedTab(index, tabId);
+      if (!capturedTab) {
+        handleError('reset: no captured tab for tabId', tabId);
+        break;
+      }
+      capturedTab.resetSettings().then(() => {
+        loadCapturedTab(capturedTabIndex, tabId);
       });
       break;
 
     case 'deleteSavedSettings':
-      sendMessage({
+      chrome.runtime.sendMessage({
         target: 'worker',
         type: 'deleteSavedSettings',
       });
       break;
 
     case 'loadSavedSettings':
-      loadSavedSettings(index, tabId);
+      if (!capturedTab) {
+        handleError('loadSavedSettings: no captured tab for tabId', tabId);
+        break;
+      }
+      loadSavedSettings(capturedTabIndex, tabId);
       break;
 
     case 'loadPreset':
-      loadPreset(index, tabId, message.preset);
+      loadPreset(capturedTabIndex, tabId, message.preset);
       break;
 
     case 'saveSettings':
-      capturedTabsArr[index].saveSettings();
+      if (!capturedTab) {
+        handleError('saveSettings: no captured tab for tabId', tabId);
+        break;
+      }
+      capturedTab.saveSettings();
       break;
 
     case 'volume':
-      capturedTabsArr[index].volumeGainNode.gain.value = message.value;
+      if (!capturedTab) {
+        handleError('volume: no captured tab for tabId', tabId);
+        break;
+      }
+      capturedTab.volumeGainNode.gain.value = message.value;
       break;
 
     case 'getVolume':
-      sendResponse(capturedTabsArr[index].volumeGainNode.gain.value);
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      sendResponse(capturedTab.volumeGainNode.gain.value);
       break;
 
     case 'threshold':
-      capturedTabsArr[index].compressor.threshold.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.compressor.threshold.value = message.value;
       break;
 
     case 'attack':
-      capturedTabsArr[index].compressor.attack.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.compressor.attack.value = message.value;
       break;
 
     case 'release':
-      capturedTabsArr[index].compressor.release.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.compressor.release.value = message.value;
       break;
 
     case 'ratio':
-      capturedTabsArr[index].compressor.ratio.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.compressor.ratio.value = message.value;
       break;
 
     case 'knee':
-      capturedTabsArr[index].compressor.knee.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.compressor.knee.value = message.value;
       break;
 
     case 'twenty':
-      capturedTabsArr[index].eq.twenty.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.twenty.gain.value = message.value;
       break;
 
     case 'fifty':
-      capturedTabsArr[index].eq.fifty.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.fifty.gain.value = message.value;
       break;
 
     case 'oneHundred':
-      capturedTabsArr[index].eq.oneHundred.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.oneHundred.gain.value = message.value;
       break;
 
     case 'twoHundred':
-      capturedTabsArr[index].eq.twoHundred.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.twoHundred.gain.value = message.value;
       break;
 
     case 'fiveHundred':
-      capturedTabsArr[index].eq.fiveHundred.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.fiveHundred.gain.value = message.value;
       break;
 
     case 'oneThousand':
-      capturedTabsArr[index].eq.oneThousand.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.oneThousand.gain.value = message.value;
       break;
 
     case 'twoThousand':
-      capturedTabsArr[index].eq.twoThousand.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.twoThousand.gain.value = message.value;
       break;
 
     case 'fiveThousand':
-      capturedTabsArr[index].eq.fiveThousand.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.fiveThousand.gain.value = message.value;
       break;
 
     case 'tenThousand':
-      capturedTabsArr[index].eq.tenThousand.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.tenThousand.gain.value = message.value;
       break;
 
     case 'twentyThousand':
-      capturedTabsArr[index].eq.twentyThousand.gain.value = message.value;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.eq.twentyThousand.gain.value = message.value;
       break;
 
     case 'pan':
-      capturedTabsArr[index].setPan(value);
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.setPan(value);
       break;
 
     case 'getPan':
-      sendResponse(capturedTabsArr[index].pan);
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      sendResponse(capturedTab.pan);
       break;
 
     case 'setMono':
-      capturedTabsArr[index].setMono(value);
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      capturedTab.setMono(value);
       sendResponse(true);
       break;
 
     case 'getMono':
-      sendResponse(capturedTabsArr[index].mono);
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      sendResponse(capturedTab.mono);
       break;
 
     case 'setInvert':
-      capturedTabsArr[index].setInvert(value);
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      capturedTab.setInvert(value);
       sendResponse(true);
       break;
 
     case 'getInvert':
-      sendResponse(capturedTabsArr[index].invert);
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      sendResponse(capturedTab.invert);
       break;
 
     case 'tabRemoved':
-      if (index !== -1) {
-        capturedTabsArr[index].stopAudio();
+      if (capturedTabIndex !== -1) {
+        capturedTabsArr[capturedTabIndex].stopAudio();
       }
       sendResponse(true);
       break;
 
     case 'getIndex':
-      sendResponse(index);
+      sendResponse(capturedTabIndex);
       return true;
 
     case 'saveWindowState':
-      capturedTabsArr[index].windowState = message.state;
+      if (!capturedTab) {
+        break;
+      }
+      capturedTab.windowState = message.state;
       break;
 
     case 'getSavedWindowState':
+      if (!capturedTab) {
+        sendResponse({ state: null });
+        break;
+      }
       sendResponse({
-        state: capturedTabsArr[index].windowState,
+        state: capturedTab.windowState,
       });
       break;
   }
-});
-
-//
-
-const { sendMessage } = chrome.runtime;
+}
 
 const capturedTabsArr = [];
 
-async function getDefaultStorageObject() {
-  return await sendMessage({
+async function fetchDefaultSettings() {
+  return await chrome.runtime.sendMessage({
     target: 'worker',
     type: 'getDefaultSettings',
   });
 }
 
-async function getSavedStorageObject() {
-  return await sendMessage({
+async function fetchSavedSettings() {
+  return await chrome.runtime.sendMessage({
     target: 'worker',
     type: 'getSavedSettings',
   });
 }
 
 function handleError(message = 'An error occurred', error = null) {
-  console.error(error);
+  if (error instanceof Error) {
+    throw error;
+  }
+
+  throw new Error(message);
 }
 
-async function getUserMedia(streamId) {
+async function requestTabAudioStream(streamId) {
+  if (!streamId) {
+    throw new Error('Missing streamId');
+  }
   return await navigator.mediaDevices.getUserMedia({
     audio: {
       mandatory: {
@@ -200,15 +302,18 @@ async function getUserMedia(streamId) {
 
 async function getStream(streamId) {
   try {
-    const stream = await getUserMedia(streamId);
+    const stream = await requestTabAudioStream(streamId);
     return stream;
   } catch (error) {
-    utils.handleError('Error getting audio stream: ' + error.message);
+    handleError(
+      'Error getting audio stream: ' + (error && error.message),
+      error,
+    );
   }
 }
 
-async function sendAudioSettingsToPopup(settings, tabId) {
-  sendMessage({
+function sendAudioSettingsToPopup(settings, tabId) {
+  chrome.runtime.sendMessage({
     target: 'popup',
     type: 'load',
     settings,
@@ -216,82 +321,82 @@ async function sendAudioSettingsToPopup(settings, tabId) {
   });
 }
 
-async function loadSavedSettings(index, tabId) {
-  const { settings } = await getSavedStorageObject();
-  capturedTabsArr[index].loadSettings(settings);
+async function loadSavedSettings(capturedTabIndex, tabId) {
+  const { settings } = await fetchSavedSettings();
+  capturedTabsArr[capturedTabIndex].loadSettings(settings);
   sendAudioSettingsToPopup(settings, tabId);
 }
 
 async function captureTab(streamId, tabId) {
-  const { settings } = await getSavedStorageObject();
-  const audioStream = await getStream(streamId);
+  const { settings } = await fetchSavedSettings();
+  const stream = await getStream(streamId);
 
-  capturedTabsArr[capturedTabsArr.length] = new CapturedAudioObject({
+  capturedTabsArr.push(new CapturedAudioObject({
     tabId,
-    stream: audioStream,
+    stream,
     settings,
-  });
+  }));
 
   sendAudioSettingsToPopup(settings, tabId);
 }
 
-async function loadCapturedTab(index, tabId) {
-  const settings = await capturedTabsArr[index].getSettings();
-  sendAudioSettingsToPopup(settings, tabId);
+async function loadCapturedTab(capturedTabIndex, tabId) {
+  const currentSettings = await capturedTabsArr[capturedTabIndex].getSettings();
+  sendAudioSettingsToPopup(currentSettings, tabId);
 }
 
-async function loadPreset(index, tabId, preset) {
-  const eqSettings = { eq: preset };
-  capturedTabsArr[index].loadSettings(eqSettings);
-  sendAudioSettingsToPopup(eqSettings, tabId);
+async function loadPreset(capturedTabIndex, tabId, eqPreset) {
+  const presetSettings = { eq: eqPreset };
+  capturedTabsArr[capturedTabIndex].loadSettings(presetSettings);
+  sendAudioSettingsToPopup(presetSettings, tabId);
 }
 
-function powerOff(index) {
-  capturedTabsArr[index].stopAudio();
-  capturedTabsArr.splice(index, 1);
+function powerOff(capturedTabIndex) {
+  capturedTabsArr[capturedTabIndex].stopAudio();
+  capturedTabsArr.splice(capturedTabIndex, 1);
 }
 
-function getCapturedTabIndex(id) {
-  return capturedTabsArr.findIndex(({ tabId }) => tabId === id);
+function getCapturedTabIndex(tabId) {
+  return capturedTabsArr.findIndex(({ tabId: capturedTabId }) => capturedTabId === tabId);
 }
 
 class CapturedAudioObject {
-  constructor({ tabId, stream, settings }) {
+  constructor({ tabId, stream: audioStream, settings }) {
     this.tabId = tabId;
     this.audioCtx = new AudioContext({ latencyHint: 'interactive' });
-    this.setupAudioNodes(stream, settings);
+    this.setupAudioNodes(audioStream, settings);
   }
-  setupAudioNodes(stream, settings) {
-    this.streamOutput = this.createMediaStreamSource(stream);
-    this.setupVolume(settings.volume);
-    this.setupPan(settings.pan);
-    this.setupMono(settings.mono);
-    this.setupInvert(settings.invert);
-    this.setupCompressor(settings.compressor);
-    this.setupEqualizer(settings.eq);
+  setupAudioNodes(audioStream, audioSettings) {
+    this.streamOutput = this.createMediaStreamSource(audioStream);
+    this.setupVolume(audioSettings.volume);
+    this.setupPan(audioSettings.pan);
+    this.setupMono(audioSettings.mono);
+    this.setupInvert(audioSettings.invert);
+    this.setupCompressor(audioSettings.compressor);
+    this.setupEqualizer(audioSettings.eq);
     this.connectAudioNodes();
   }
-  createMediaStreamSource(stream) {
-    return this.audioCtx.createMediaStreamSource(stream);
+  createMediaStreamSource(audioStream) {
+    return this.audioCtx.createMediaStreamSource(audioStream);
   }
-  setupVolume(volume) {
+  setupVolume(volumeValue) {
     this.volumeGainNode = this.audioCtx.createGain();
     this.leftInvertGainNode = this.audioCtx.createGain();
     this.rightInvertGainNode = this.audioCtx.createGain();
 
     this.invertSplitter = this.audioCtx.createChannelSplitter(2);
     this.invertMerger = this.audioCtx.createChannelMerger(2);
-    this.volumeGainNode.gain.value = volume;
+    this.volumeGainNode.gain.value = volumeValue;
   }
-  setupPan(pan) {
-    this.pan = pan;
+  setupPan(panValue) {
+    this.pan = panValue;
     this.panSplitter = this.audioCtx.createChannelSplitter(2);
     this.leftPanGain = this.audioCtx.createGain();
     this.rightPanGain = this.audioCtx.createGain();
     this.panMerger = this.audioCtx.createChannelMerger(2);
   }
-  setupMono(mono) {
-    this.mono = mono;
+  setupMono(isMono) {
+    this.mono = isMono;
     this.monoSplitter = this.audioCtx.createChannelSplitter(2);
     this.monoGain = this.audioCtx.createGain();
     this.stereoGain = this.audioCtx.createGain();
@@ -300,8 +405,8 @@ class CapturedAudioObject {
     this.monoGain.gain.setValueAtTime(0.5, this.audioCtx.currentTime);
     this.stereoGain.gain.setValueAtTime(1, this.audioCtx.currentTime);
   }
-  setupInvert(invert) {
-    this.invert = invert;
+  setupInvert(isInverted) {
+    this.invert = isInverted;
   }
   setupCompressor(compressorSettings) {
     this.compressor = this.audioCtx.createDynamicsCompressor();
@@ -311,11 +416,11 @@ class CapturedAudioObject {
     });
 
     this.compressor.attack.value = Number(
-      this.compressor.attack.value.toFixed(1)
+      this.compressor.attack.value.toFixed(1),
     );
   }
-  setupEqualizer(eq) {
-    const eqStructureObj = {
+  setupEqualizer(eqSettings) {
+    const eqBandConfig = {
       twenty: {
         type: 'lowshelf',
         frequency: 32,
@@ -360,58 +465,68 @@ class CapturedAudioObject {
 
     this.eq = {};
 
-    Object.entries(eq).forEach(([key, value]) => {
-      this.eq[key] = this.audioCtx.createBiquadFilter();
+    Object.entries(eqSettings).forEach(([bandKey, gainValue]) => {
+      this.eq[bandKey] = this.audioCtx.createBiquadFilter();
 
-      const currentFreq = this.eq[key];
+      const filterNode = this.eq[bandKey];
       const { currentTime } = this.audioCtx;
-      const { type, frequency } = eqStructureObj[key];
+      const { type, frequency } = eqBandConfig[bandKey];
 
-      currentFreq.gain.value = value;
-      currentFreq.type = type;
-      currentFreq.frequency.setValueAtTime(frequency, currentTime);
+      filterNode.gain.value = gainValue;
+      filterNode.type = type;
+      filterNode.frequency.setValueAtTime(frequency, currentTime);
 
-      if (!key.includes('twenty')) {
-        currentFreq.Q.setValueAtTime(5, currentTime);
+      if (!bandKey.includes('twenty')) {
+        filterNode.Q.setValueAtTime(5, currentTime);
       }
     });
   }
   connectAudioNodes() {
-    const { audioCtx, streamOutput } = this;
+    this.connectInvertNodes();
+    this.connectPanNodes();
+    this.setMono(this.mono);
+    this.connectEqChain();
+    this.connectOutput();
+  }
 
+  connectInvertNodes() {
     const {
-      panMerger,
-      panSplitter,
-      leftPanGain,
-      rightPanGain,
+      streamOutput,
+      invertSplitter,
       leftInvertGainNode,
       rightInvertGainNode,
       invertMerger,
-      invertSplitter,
     } = this;
 
     streamOutput.connect(invertSplitter);
-
     invertSplitter.connect(leftInvertGainNode, 0, 0);
     invertSplitter.connect(rightInvertGainNode, 1, 0);
-
     leftInvertGainNode.connect(invertMerger, 0, 0);
     rightInvertGainNode.connect(invertMerger, 0, 1);
 
     if (this.invert) {
       this.setInvert(true);
     }
+  }
+
+  connectPanNodes() {
+    const {
+      invertMerger,
+      panSplitter,
+      leftPanGain,
+      rightPanGain,
+      panMerger,
+    } = this;
 
     invertMerger.connect(panSplitter);
     panSplitter.connect(leftPanGain, 0);
     panSplitter.connect(rightPanGain, 1);
     leftPanGain.connect(panMerger, 0, 0);
     rightPanGain.connect(panMerger, 0, 1);
+  }
 
-    this.setMono(this.mono);
-
+  connectEqChain() {
     const { compressor } = this;
-
     const {
       twenty,
       fifty,
@@ -435,8 +550,10 @@ class CapturedAudioObject {
     fiveThousand.connect(tenThousand);
     tenThousand.connect(twentyThousand);
     twentyThousand.connect(compressor);
+  }
 
-    const { volumeGainNode } = this;
+  connectOutput() {
+    const { audioCtx, compressor, volumeGainNode } = this;
 
     compressor.connect(volumeGainNode);
     volumeGainNode.connect(audioCtx.destination);
@@ -480,17 +597,17 @@ class CapturedAudioObject {
       connectStereo();
     }
   }
-  setInvert(invert) {
+  setInvert(isInverted) {
     const { leftInvertGainNode } = this;
     const { gain } = leftInvertGainNode;
 
-    if (invert) {
+    if (isInverted) {
       gain.value = -1;
     } else {
       gain.value = 1;
     }
 
-    this.invert = invert;
+    this.invert = isInverted;
   }
 
   stopAudio() {
@@ -501,11 +618,11 @@ class CapturedAudioObject {
       this.volumeGainNode?.disconnect();
       this.compressor?.disconnect();
       Object.values(this.eq || {}).forEach((band) => band.disconnect?.());
-    } catch (e) {
-      console.warn('Disconnect error:', e);
+    } catch (error) {
+      handleError('stopAudio: failed to disconnect audio nodes', error);
     }
 
-    const audioTracks = streamOutput.mediaStream.getAudioTracks();
+    const audioTracks = streamOutput.mediaStream?.getAudioTracks() || [];
 
     if (audioTracks.length > 0) {
       audioTracks[0].stop();
@@ -515,9 +632,9 @@ class CapturedAudioObject {
     return true;
   }
   async resetSettings() {
-    let { compressor, eq, volumeGainNode, mono, invert, pan } = this;
+    const { compressor, eq, volumeGainNode } = this;
 
-    const defaultSettingsObj = await getDefaultStorageObject();
+    const defaultSettingsObj = await fetchDefaultSettings();
     const defaultCompEntries = Object.entries(defaultSettingsObj.compressor);
     const defaultEqEntries = Object.entries(defaultSettingsObj.eq);
 
@@ -529,20 +646,17 @@ class CapturedAudioObject {
       eq[key].gain.value = value;
     });
 
-    pan = defaultSettingsObj.pan;
     this.setPan(0);
 
-    mono = false;
     this.setMono(false);
 
-    invert = false;
     this.setInvert(false);
 
     volumeGainNode.gain.value = 1;
   }
 
-  setPan(val) {
-    const clampedPan = Math.max(-1, Math.min(1, Number(val)));
+  setPan(panValue) {
+    const clampedPan = Math.max(-1, Math.min(1, Number(panValue)));
     this.pan = clampedPan;
 
     const { leftPanGain, rightPanGain, audioCtx } = this;
@@ -561,7 +675,7 @@ class CapturedAudioObject {
       }
     };
 
-    if (val > 0) {
+    if (panValue > 0) {
       change(true);
     } else {
       change(false);
@@ -569,35 +683,35 @@ class CapturedAudioObject {
   }
   async saveSettings() {
     const { eq, compressor, mono, pan, volumeGainNode, invert } = this;
-    const settingsObj = {
+    const settingsPayload = {
       compressor: {},
       eq: {},
     };
 
-    const defaultSettingsObj = await getDefaultStorageObject();
-    const compressorKeys = Object.keys(defaultSettingsObj.compressor);
-    const eqKeys = Object.keys(defaultSettingsObj.eq);
+    const defaultSettings = await fetchDefaultSettings();
+    const compressorKeys = Object.keys(defaultSettings.compressor);
+    const eqKeys = Object.keys(defaultSettings.eq);
 
-    settingsObj.mono = mono;
-    settingsObj.invert = invert;
-    settingsObj.pan = pan;
-    settingsObj.volume = volumeGainNode.gain.value;
+    settingsPayload.mono = mono;
+    settingsPayload.invert = invert;
+    settingsPayload.pan = pan;
+    settingsPayload.volume = volumeGainNode.gain.value;
 
     compressorKeys.forEach((key) => {
-      settingsObj.compressor[key] = compressor[key].value;
+      settingsPayload.compressor[key] = compressor[key].value;
     });
     eqKeys.forEach((key) => {
-      settingsObj.eq[key] = eq[key].gain.value;
+      settingsPayload.eq[key] = eq[key].gain.value;
     });
 
-    sendMessage({
+    chrome.runtime.sendMessage({
       target: 'worker',
       type: 'saveToStorage',
-      data: settingsObj,
+      data: settingsPayload,
     });
   }
-  loadSettings(settings) {
-    const { compressor, eq, pan, mono, volume, invert } = settings;
+  loadSettings(audioSettings) {
+    const { compressor, eq, pan, mono, volume, invert } = audioSettings;
 
     if (compressor) {
       const compressorKeys = Object.keys(compressor);
@@ -613,49 +727,49 @@ class CapturedAudioObject {
       });
     }
 
-    if (pan) {
+    if (pan != null) {
       this.pan = pan;
       this.setPan(pan);
     }
 
-    if (mono) {
+    if (mono != null) {
       this.mono = mono;
       this.setMono(mono);
     }
 
-    if (invert) {
+    if (invert != null) {
       this.invert = invert;
       this.setInvert(invert);
     }
 
-    if (volume) {
+    if (volume != null) {
       this.volumeGainNode.gain.value = volume;
     }
   }
   async getSettings() {
     const { volumeGainNode, eq, compressor, mono, pan, invert } = this;
 
-    const defaultSettingsObj = await getDefaultStorageObject();
-    const compKeys = Object.keys(defaultSettingsObj.compressor);
-    const eqKeys = Object.keys(defaultSettingsObj.eq);
+    const defaultSettings = await fetchDefaultSettings();
+    const compressorKeys = Object.keys(defaultSettings.compressor);
+    const eqBandKeys = Object.keys(defaultSettings.eq);
 
-    const currentSettingsObj = {};
+    const currentSettings = {};
 
-    currentSettingsObj.mono = mono;
-    currentSettingsObj.invert = invert;
-    currentSettingsObj.pan = pan;
-    currentSettingsObj.volume = volumeGainNode.gain.value;
+    currentSettings.mono = mono;
+    currentSettings.invert = invert;
+    currentSettings.pan = pan;
+    currentSettings.volume = volumeGainNode.gain.value;
 
-    currentSettingsObj.compressor = {};
-    compKeys.forEach((key) => {
-      currentSettingsObj.compressor[key] = compressor[key].value;
+    currentSettings.compressor = {};
+    compressorKeys.forEach((key) => {
+      currentSettings.compressor[key] = compressor[key].value;
     });
 
-    currentSettingsObj.eq = {};
-    eqKeys.forEach((key) => {
-      currentSettingsObj.eq[key] = eq[key].gain.value;
+    currentSettings.eq = {};
+    eqBandKeys.forEach((key) => {
+      currentSettings.eq[key] = eq[key].gain.value;
     });
 
-    return currentSettingsObj;
+    return currentSettings;
   }
 }

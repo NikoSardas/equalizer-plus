@@ -1,11 +1,14 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const { target, type } = message;
+  return handleWorkerMessage(message, sender, sendResponse);
+});
+
+function handleWorkerMessage(message, sender, sendResponse) {
+  const { target, type, tabId, data } = message;
 
   if (target !== 'worker') return;
 
   switch (type) {
     case 'popupReady':
-      const { tabId } = message;
       onPopupReady(tabId);
       break;
 
@@ -25,7 +28,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'saveToStorage':
-      saveSettings(message.data);
+      saveSettings(data);
       setSavedState(true);
       break;
 
@@ -33,49 +36,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleError('Unknown message type:', type);
       break;
   }
-});
-
-//
+}
 
 async function onPopupReady(tabId) {
   await verifyOffscreenDoc();
 
-  const index = await getCapturedTabArrayIndex(tabId);
-  const tabIsCaptured = index !== -1;
+  const capturedTabIndex = await getCapturedTabIndex(tabId);
+  const tabIsCaptured = capturedTabIndex !== -1;
 
-  sendMessage({
+  chrome.runtime.sendMessage({
     target: 'offscreen',
     type: tabIsCaptured ? 'loadCapturedTab' : 'captureTab',
-    index: tabIsCaptured && index,
     streamId: !tabIsCaptured && (await getStreamId(tabId)),
     tabId,
   });
 }
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-  sendMessage({
-    target: 'offscreen',
-    type: 'tabRemoved',
-    tabId,
-  }),
-    (response) => {
-      return true;
-    };
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  try {
+    await chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: 'tabRemoved',
+      tabId,
+    });
+  } catch (err) {
+    handleError('tabRemoved sendMessage failed', err);
+  }
 });
 
 chrome.tabCapture.onStatusChanged.addListener(
   async ({ status, fullscreen, tabId }) => {
-    if (status === 'active') {
-      const tabIsCaptured = (await getCapturedTabArrayIndex(tabId)) > -1;
-      if (tabIsCaptured) {
-        toggleFullscreen({ fullscreen, tabId });
-      }
+    if (status !== 'active') {
+      return;
     }
-  }
+
+    const isCaptured = (await getCapturedTabIndex(tabId)) > -1;
+    if (isCaptured) {
+      toggleFullscreen({ fullscreen, tabId });
+    }
+  },
 );
 
 chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
-  if (reason === 'chrome_update') return;
+  if (reason === 'chrome_update') {
+    return;
+  }
 
   await verifyOffscreenDoc();
 
@@ -86,11 +91,9 @@ chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
   }
 });
 
-const { sendMessage } = chrome.runtime;
-
-async function setSavedState(state) {
+async function setSavedState(isSaved) {
   await chrome.storage.sync.set({
-    saved: state,
+    saved: isSaved,
   });
 }
 
@@ -98,9 +101,9 @@ async function getSavedSettings() {
   return await chrome.storage.sync.get();
 }
 
-async function saveSettings(settingsObject) {
+async function saveSettings(settings) {
   await chrome.storage.sync.set({
-    settings: settingsObject,
+    settings,
   });
 }
 
@@ -138,9 +141,9 @@ async function setDefaultSettings() {
   });
 }
 
-async function setCollapsedState(state) {
+async function setCollapsedState(isCollapsed) {
   await chrome.storage.sync.set({
-    collapsed: state,
+    collapsed: isCollapsed,
   });
 }
 
@@ -152,20 +155,18 @@ async function getStreamId(tabId) {
 
     if (streamId && typeof streamId === 'string') {
       return streamId;
-    } else {
-      handleError('Invalid streamId:', streamId);
-      return false;
     }
+    handleError('Invalid streamId:', streamId);
   } catch (error) {
     handleError('Error in getStreamId:', error);
   }
 }
 
 async function verifyOffscreenDoc() {
-  const allContexts = await chrome.runtime.getContexts({});
+  const contexts = await chrome.runtime.getContexts({});
 
-  const offscreenDocument = allContexts.find(
-    (c) => c.contextType === 'OFFSCREEN_DOCUMENT'
+  const offscreenDocument = contexts.find(
+    (c) => c.contextType === 'OFFSCREEN_DOCUMENT',
   );
 
   if (!offscreenDocument) {
@@ -182,30 +183,29 @@ async function enterFullscreen() {
   chrome.windows.update(id, { state: 'fullscreen' });
 }
 
-async function exitFullscreen({ state }) {
+async function exitFullscreen({ windowState }) {
   const { id } = await chrome.windows.getCurrent();
-  chrome.windows.update(id, state);
+  chrome.windows.update(id, { state: windowState });
 }
 
-async function getSavedWindowState({ state, tabId }) {
+async function getSavedWindowState({ windowState, tabId }) {
   try {
-    return await sendMessage({
+    return await chrome.runtime.sendMessage({
       target: 'offscreen',
       type: 'getSavedWindowState',
-      state,
+      state: windowState,
       tabId,
     });
   } catch (error) {
     handleError('Error getting saved window state', error);
-    return state;
   }
 }
 
-async function saveWindowState({ state, tabId }) {
-  await sendMessage({
+async function saveWindowState({ windowState, tabId }) {
+  await chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'saveWindowState',
-    state,
+    state: windowState,
     tabId,
   });
 }
@@ -214,26 +214,39 @@ async function toggleFullscreen({ fullscreen, tabId }) {
   const { state } = await chrome.windows.getCurrent();
 
   if (fullscreen) {
-    await saveWindowState({ state, tabId });
+    await saveWindowState({ windowState: state, tabId });
     enterFullscreen();
   } else {
     const savedWindowState = await getSavedWindowState({
-      state,
+      windowState: state,
       tabId,
     });
-    exitFullscreen({ state: savedWindowState });
+    exitFullscreen({ windowState: savedWindowState });
   }
 }
 
 function handleError(message = 'An error occurred', error = null) {
-  showNotification(error);
+  const notifyMessage =
+    (error && error.message) ||
+    (typeof message === 'string' ? message : String(message));
+  try {
+    showNotification({ message: notifyMessage });
+  } catch (e) {}
+
+  if (error instanceof Error) {
+    throw error;
+  }
+
+  throw new Error(notifyMessage);
 }
 
-function showNotification(notification) {
-  const { message } = notification;
+function showNotification(notificationPayload) {
+  const message =
+    typeof notificationPayload === 'string'
+      ? notificationPayload
+      : notificationPayload && notificationPayload.message;
 
   if (typeof message !== 'string') {
-    handleError('Invalid notification message:', notification);
     return;
   }
 
@@ -248,7 +261,7 @@ function showNotification(notification) {
 
 async function onInstalled() {
   showInstallNotification();
-  setInitState();
+  initializeStorage();
 }
 
 async function onUpdated(previousVersion) {
@@ -257,7 +270,7 @@ async function onUpdated(previousVersion) {
   showUpdateNotification();
 
   chrome.storage.sync.clear(() => {
-    setInitState();
+    initializeStorage();
   });
 }
 
@@ -268,20 +281,22 @@ function showInstallNotification() {
   });
 }
 
+const UPDATE_PAGE_URL = 'https://nikosardas.github.io/eqPlus-pages/V3-Update.html';
+
 function showUpdateNotification() {
   chrome.windows.create({
-    url: 'https://nikosardas.github.io/eqPlus-pages/V3-Update.html',
+    url: UPDATE_PAGE_URL,
   });
 }
 
-function setInitState() {
+function initializeStorage() {
   setDefaultSettings();
   setSavedState(false);
   setCollapsedState(true);
 }
 
-async function getCapturedTabArrayIndex(tabId) {
-  return await sendMessage({
+async function getCapturedTabIndex(tabId) {
+  return await chrome.runtime.sendMessage({
     target: 'offscreen',
     type: 'getIndex',
     tabId,

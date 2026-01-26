@@ -3,5 +3,10 @@
     "semi": true,
     "singleQuote": true,
     "tabWidth": 2
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "prettier": "^3.8.0",
+    "prettier-eslint": "^16.4.2"
   }
 }
