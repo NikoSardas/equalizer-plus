@@ -28,7 +28,7 @@ function handleOffscreenMessage(message, sender, sendResponse) {
     case 'reset':
       if (!capturedTab) {
         handleError('reset: no captured tab for tabId', tabId);
-        break;
+        return;
       }
       capturedTab.resetSettings().then(() => {
         loadCapturedTab(capturedTabIndex, tabId);
@@ -45,19 +45,23 @@ function handleOffscreenMessage(message, sender, sendResponse) {
     case 'loadSavedSettings':
       if (!capturedTab) {
         handleError('loadSavedSettings: no captured tab for tabId', tabId);
-        break;
+        return;
       }
       loadSavedSettings(capturedTabIndex, tabId);
       break;
 
     case 'loadPreset':
+      if (!capturedTab) {
+        handleError('loadPreset: no captured tab for tabId', tabId);
+        return;
+      }
       loadPreset(capturedTabIndex, tabId, message.preset);
       break;
 
     case 'saveSettings':
       if (!capturedTab) {
         handleError('saveSettings: no captured tab for tabId', tabId);
-        break;
+        return;
       }
       capturedTab.saveSettings();
       break;
@@ -264,6 +268,10 @@ function handleOffscreenMessage(message, sender, sendResponse) {
 
 const capturedTabsArr = [];
 
+function isPlainObject(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 async function fetchDefaultSettings() {
   return await chrome.runtime.sendMessage({
     target: 'worker',
@@ -323,35 +331,59 @@ function sendAudioSettingsToPopup(settings, tabId) {
 
 async function loadSavedSettings(capturedTabIndex, tabId) {
   const { settings } = await fetchSavedSettings();
-  capturedTabsArr[capturedTabIndex].loadSettings(settings);
-  sendAudioSettingsToPopup(settings, tabId);
+  const safeSettings = isPlainObject(settings)
+    ? settings
+    : await fetchDefaultSettings();
+  const capturedTab = capturedTabsArr[capturedTabIndex];
+  if (!capturedTab) {
+    handleError('loadSavedSettings: invalid captured tab index', capturedTabIndex);
+    return;
+  }
+  capturedTab.loadSettings(safeSettings);
+  sendAudioSettingsToPopup(safeSettings, tabId);
 }
 
 async function captureTab(streamId, tabId) {
   const { settings } = await fetchSavedSettings();
+  const safeSettings = isPlainObject(settings)
+    ? settings
+    : await fetchDefaultSettings();
   const stream = await getStream(streamId);
 
   capturedTabsArr.push(new CapturedAudioObject({
     tabId,
     stream,
-    settings,
+    settings: safeSettings,
   }));
 
-  sendAudioSettingsToPopup(settings, tabId);
+  sendAudioSettingsToPopup(safeSettings, tabId);
 }
 
 async function loadCapturedTab(capturedTabIndex, tabId) {
-  const currentSettings = await capturedTabsArr[capturedTabIndex].getSettings();
+  const capturedTab = capturedTabsArr[capturedTabIndex];
+  if (!capturedTab) {
+    handleError('loadCapturedTab: invalid captured tab index', capturedTabIndex);
+    return;
+  }
+  const currentSettings = await capturedTab.getSettings();
   sendAudioSettingsToPopup(currentSettings, tabId);
 }
 
 async function loadPreset(capturedTabIndex, tabId, eqPreset) {
   const presetSettings = { eq: eqPreset };
-  capturedTabsArr[capturedTabIndex].loadSettings(presetSettings);
+  const capturedTab = capturedTabsArr[capturedTabIndex];
+  if (!capturedTab) {
+    handleError('loadPreset: invalid captured tab index', capturedTabIndex);
+    return;
+  }
+  capturedTab.loadSettings(presetSettings);
   sendAudioSettingsToPopup(presetSettings, tabId);
 }
 
 function powerOff(capturedTabIndex) {
+  if (capturedTabIndex === -1) {
+    return;
+  }
   capturedTabsArr[capturedTabIndex].stopAudio();
   capturedTabsArr.splice(capturedTabIndex, 1);
 }
@@ -675,7 +707,7 @@ class CapturedAudioObject {
       }
     };
 
-    if (panValue > 0) {
+    if (clampedPan > 0) {
       change(true);
     } else {
       change(false);
@@ -711,16 +743,17 @@ class CapturedAudioObject {
     });
   }
   loadSettings(audioSettings) {
-    const { compressor, eq, pan, mono, volume, invert } = audioSettings;
+    const safeSettings = isPlainObject(audioSettings) ? audioSettings : {};
+    const { compressor, eq, pan, mono, volume, invert } = safeSettings;
 
-    if (compressor) {
+    if (isPlainObject(compressor)) {
       const compressorKeys = Object.keys(compressor);
       compressorKeys.forEach((key) => {
         this.compressor[key].value = compressor[key];
       });
     }
 
-    if (eq) {
+    if (isPlainObject(eq)) {
       const eqKeys = Object.keys(eq);
       eqKeys.forEach((key) => {
         this.eq[key].gain.value = eq[key];

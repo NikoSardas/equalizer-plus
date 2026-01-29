@@ -28,6 +28,10 @@ const DEFAULT_PAN_VALUE = 0;
 
 let tabId = null;
 
+function isPlainObject(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function initPopup(tab) {
   tabId = tab.id;
 
@@ -77,6 +81,9 @@ function setPopupListener(currentTabId) {
 function handleFaderInput({ target }) {
   const { id, classList } = target;
   let currentValue = Number(target.value);
+  if (!Number.isFinite(currentValue)) {
+    return;
+  }
 
   if (classList.contains('eqFader') && currentValue === MIN_EQ_VALUE) {
     currentValue *= 2;
@@ -168,7 +175,11 @@ async function handleInvertClick() {
 }
 
 function handlePresetsChange(event) {
-  loadEqPreset(event.target.value);
+  try {
+    loadEqPreset(event.target.value);
+  } catch (error) {
+    console.warn('Preset load failed:', error);
+  }
 }
 
 function handleSaveClick() {
@@ -274,19 +285,29 @@ function updateAllSliderBackgrounds() {
 
 async function loadModules(moduleSettings) {
   const storageObject = await chrome.storage.sync.get();
-  const settings = moduleSettings ?? storageObject.settings;
+  let settings =
+    moduleSettings != null ? moduleSettings : storageObject.settings;
+  if (!settings) {
+    settings = await chrome.runtime.sendMessage({
+      target: 'worker',
+      type: 'getDefaultSettings',
+    });
+  }
 
-  const { collapsed, saved } = storageObject;
-  const { volume, mono, pan, eq, compressor, invert } = settings;
+  const { collapsed, saved } = storageObject || {};
+  const isCollapsed = collapsed ?? true;
+  const isSaved = saved ?? false;
+  const safeSettings = isPlainObject(settings) ? settings : {};
+  const { volume, mono, pan, eq, compressor, invert } = safeSettings;
 
   if (mono != null) initMono(mono);
   if (invert != null) initInvert(invert);
   if (pan != null) initPan(pan);
-  if (compressor != null) initCompressor(compressor, collapsed);
-  if (eq != null) initEq(eq);
+  if (isPlainObject(compressor)) initCompressor(compressor, isCollapsed);
+  if (isPlainObject(eq)) initEq(eq);
   if (volume != null) initVolume(volume);
 
-  updateSavedActions(saved);
+  updateSavedActions(isSaved);
 }
 
 function getNotification(message) {
@@ -397,6 +418,10 @@ function initCompressor(compressorSettings, collapsed) {
     const sliderEl = document.getElementById(key);
     const valueEl = document.getElementById(`${key}Val`);
 
+    if (!sliderEl || !valueEl) {
+      return;
+    }
+
     sliderEl.value = value;
     valueEl.textContent = Math.round((value + Number.EPSILON) * 100) / 100;
   });
@@ -404,6 +429,9 @@ function initCompressor(compressorSettings, collapsed) {
 
 function setCollapsed(isCollapsed) {
   const isExpanded = !isCollapsed;
+  if (!collapseElement || !collapseToggle) {
+    return;
+  }
   collapseElement.classList.toggle('open', isExpanded);
   collapseToggle.classList.toggle('open', isExpanded);
   collapseToggle.setAttribute('aria-expanded', String(isExpanded));
@@ -417,6 +445,10 @@ function initEq(eqSettings) {
   Object.keys(eqSettings).forEach((key) => {
     const bandEl = document.getElementById(key);
     const value = eqSettings[key];
+
+    if (!bandEl) {
+      return;
+    }
 
     bandEl.value = value;
   });
@@ -450,7 +482,8 @@ function loadEqPreset(name) {
 
   const presetValues = eqPresets[name];
   if (!presetValues) {
-    throw new Error(`Unknown preset: ${name}`);
+    console.warn(`Unknown preset: ${name}`);
+    return;
   }
 
   const presetPayload = {

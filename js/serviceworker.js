@@ -234,10 +234,12 @@ function handleError(message = 'An error occurred', error = null) {
   } catch (e) {}
 
   if (error instanceof Error) {
-    throw error;
+    console.error(message, error);
+    return;
   }
 
-  throw new Error(notifyMessage);
+  console.error(message);
+  return;
 }
 
 function showNotification(notificationPayload) {
