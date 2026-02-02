@@ -38,6 +38,14 @@
         <span class="donate-text">Support EQ+</span>
       </a>
       <button
+        class="theme-random"
+        id="themeRandom"
+        type="button"
+        aria-label="Random theme"
+      >
+        Random theme
+      </button>
+      <button
         class="theme-toggle"
         id="themeToggle"
         type="button"
@@ -120,8 +128,17 @@
           </button>
         </div>
         <div id="tabs">
-          <div class="tab active" id="equalizer">
-            <div class="eq-row fadersGrp">
+          <div class="tab active collapsible" id="equalizer">
+            <button
+              id="equalizer-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="equalizer-panel"
+            >
+              <i class="eqp-chevron-down" aria-hidden="true"></i>
+              <span>Equalizer</span>
+            </button>
+            <div class="eq-row fadersGrp" id="equalizer-panel">
               <div class="eq eqGrp range range-v">
                 <input
                   class="eqFader"
@@ -418,6 +435,10 @@
         </div>
       </div>
     </div>
+    <label class="startup-toggle" id="startupToggleWrap" title="Save current settings as startup defaults">
+      <input id="startupDefault" type="checkbox" />
+      <span>Startup</span>
+    </label>
     <script src="js/libs/jquery.min.js"></script>
     <script src="js/libs/jquery.knob.min.js"></script>
     <script src="js/libs/nprogress.js"></script>

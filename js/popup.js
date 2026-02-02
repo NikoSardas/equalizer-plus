@@ -10,6 +10,10 @@ const resetBtn = document.getElementById('resetBtn');
 const settingsToggle = document.getElementById('settingsToggle');
 const settingsPanel = document.getElementById('settingsPanel');
 const themeToggle = document.getElementById('themeToggle');
+const themeRandom = document.getElementById('themeRandom');
+const startupDefaultCheckbox = document.getElementById('startupDefault');
+const equalizerToggle = document.getElementById('equalizer-toggle');
+const equalizerContainer = document.getElementById('equalizer');
 const collapseElement = document.getElementsByClassName('collapse')[0];
 const collapseToggle = document.getElementById('collapse-toggle');
 const rangeInputs = document.querySelectorAll('input[type="range"]');
@@ -29,7 +33,6 @@ const DEFAULT_PRESET_LABEL = 'Presets';
 const DEFAULT_PAN_VALUE = 0;
 
 let tabId = null;
-let isUiInitialized = false;
 
 function isPlainObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value);
@@ -296,9 +299,42 @@ function handleSettingsToggleClick() {
   );
 }
 
+function setEqualizerOpen(isOpen) {
+  if (!equalizerContainer || !equalizerToggle) return;
+  equalizerContainer.classList.toggle('open', isOpen);
+  equalizerToggle.classList.toggle('open', isOpen);
+  equalizerToggle.setAttribute('aria-expanded', String(isOpen));
+}
+
+function handleEqualizerToggleClick() {
+  if (!equalizerContainer) return;
+  const isOpen = !equalizerContainer.classList.contains('open');
+  setEqualizerOpen(isOpen);
+  chrome.storage.sync.set({ showEqualizer: isOpen });
+}
+
+function setCompressorOpen(isOpen) {
+  const isExpanded = Boolean(isOpen);
+  collapseElement.classList.toggle('open', isExpanded);
+  collapseToggle.classList.toggle('open', isExpanded);
+  collapseToggle.setAttribute('aria-expanded', String(isExpanded));
+  const advanced = document.getElementById('advanced');
+  if (advanced) {
+    advanced.classList.toggle('open', isExpanded);
+  }
+}
+
 function setTheme(mode) {
   const isDark = mode !== 'light';
   document.body.classList.toggle('dark-mode', isDark);
+  document.body.classList.remove('custom-theme');
+  document.body.style.removeProperty('--bg1');
+  document.body.style.removeProperty('--bg2');
+  document.body.style.removeProperty('--panel');
+  document.body.style.removeProperty('--panel-hover');
+  document.body.style.removeProperty('--text');
+  document.body.style.removeProperty('--border');
+  document.body.style.removeProperty('--accent');
   if (themeToggle) {
     themeToggle.textContent = isDark ? 'Light theme' : 'Dark theme';
     themeToggle.setAttribute(
@@ -312,7 +348,63 @@ async function handleThemeToggleClick() {
   const isDark = document.body.classList.contains('dark-mode');
   const nextMode = isDark ? 'light' : 'dark';
   setTheme(nextMode);
-  await chrome.storage.sync.set({ theme: nextMode });
+  await chrome.storage.sync.set({ theme: nextMode, customTheme: null });
+}
+
+function applyCustomTheme(theme) {
+  if (!theme || typeof theme !== 'object') return;
+  document.body.classList.add('dark-mode');
+  document.body.classList.add('custom-theme');
+  document.body.style.setProperty('--bg1', theme.bg1);
+  document.body.style.setProperty('--bg2', theme.bg2);
+  document.body.style.setProperty('--panel', theme.panel);
+  document.body.style.setProperty('--panel-hover', theme.panelHover);
+  document.body.style.setProperty('--text', theme.text);
+  document.body.style.setProperty('--border', theme.border);
+  document.body.style.setProperty('--accent', theme.accent);
+}
+
+function generateRandomTheme() {
+  const hue = Math.floor(Math.random() * 360);
+  return {
+    bg1: `hsl(${hue}, 18%, 10%)`,
+    bg2: `hsl(${hue}, 18%, 14%)`,
+    panel: `hsl(${hue}, 14%, 18%)`,
+    panelHover: `hsl(${hue}, 14%, 22%)`,
+    text: '#f5f6f7',
+    border: 'rgba(255, 255, 255, 0.06)',
+    accent: `hsl(${(hue + 30) % 360}, 80%, 55%)`,
+  };
+}
+
+async function handleThemeRandomClick() {
+  const theme = generateRandomTheme();
+  applyCustomTheme(theme);
+  await chrome.storage.sync.set({ customTheme: theme, theme: 'custom' });
+}
+
+async function handleStartupToggleClick() {
+  if (!startupDefaultCheckbox) return;
+  const isChecked = startupDefaultCheckbox.checked;
+  if (isChecked) {
+    const currentSettings = await chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: 'getCurrentSettings',
+      tabId,
+    });
+    if (currentSettings) {
+      await chrome.runtime.sendMessage({
+        target: 'worker',
+        type: 'setStartupSettings',
+        settings: currentSettings,
+      });
+    }
+  } else {
+    await chrome.runtime.sendMessage({
+      target: 'worker',
+      type: 'clearStartupSettings',
+    });
+  }
 }
 
 function loadUIListeners() {
@@ -341,6 +433,9 @@ function loadUIListeners() {
   });
 
   collapseToggle.addEventListener('click', handleCollapseToggleClick);
+  if (equalizerToggle) {
+    equalizerToggle.addEventListener('click', handleEqualizerToggleClick);
+  }
   closeBtn.addEventListener('click', handleCloseClick);
   monoBtn.addEventListener('click', handleMonoClick);
   invertBtn.addEventListener('click', handleInvertClick);
@@ -357,6 +452,12 @@ function loadUIListeners() {
   }
   if (themeToggle) {
     themeToggle.addEventListener('click', handleThemeToggleClick);
+  }
+  if (themeRandom) {
+    themeRandom.addEventListener('click', handleThemeRandomClick);
+  }
+  if (startupDefaultCheckbox) {
+    startupDefaultCheckbox.addEventListener('change', handleStartupToggleClick);
   }
 }
 
@@ -383,7 +484,7 @@ function paintSliderBg(sliderEl) {
   const percent = Math.ceil(
     ((sliderEl.value - sliderEl.min) / (sliderEl.max - sliderEl.min)) * 100,
   );
-  sliderEl.style.backgroundImage = `linear-gradient(to right, #f59821 ${percent}%, transparent ${percent}%)`;
+  sliderEl.style.backgroundImage = `linear-gradient(to right, var(--accent, #f59821) ${percent}%, transparent ${percent}%)`;
 }
 
 function updateAllSliderBackgrounds() {
@@ -403,7 +504,8 @@ async function loadModules(moduleSettings) {
     });
   }
 
-  const { collapsed, theme } = storageObject || {};
+  const { collapsed, theme, customTheme, startupDefaultEnabled, showEqualizer, showCompressor } =
+    storageObject || {};
   const isCollapsed = collapsed ?? true;
   const safeSettings = isPlainObject(settings) ? settings : {};
   const { volume, mono, pan, eq, compressor, invert } = safeSettings;
@@ -415,9 +517,20 @@ async function loadModules(moduleSettings) {
   if (isPlainObject(eq)) initEq(eq);
   if (volume != null) initVolume(volume);
 
-  setTheme(theme);
+  if (theme === 'custom' && customTheme) {
+    applyCustomTheme(customTheme);
+  } else {
+    setTheme(theme);
+  }
 
-  isUiInitialized = true;
+  if (startupDefaultCheckbox) {
+    startupDefaultCheckbox.checked = Boolean(startupDefaultEnabled);
+  }
+
+  const eqOpen = showEqualizer ?? true;
+  const compOpen = showCompressor ?? true;
+  setEqualizerOpen(eqOpen);
+  setCompressorOpen(compOpen);
 
   await refreshPresetSlots();
 }
