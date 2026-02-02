@@ -12,16 +12,45 @@
       <h1 class="title header-brand" id="title">EQ+</h1>
       <p id="version"></p>
       <div class="header-buttons">
+        <button
+          class="btn btn-sm header-btn"
+          id="settingsToggle"
+          type="button"
+          aria-label="Settings"
+          title="Settings"
+        >
+          <i class="eqp-settings" aria-hidden="true"></i>
+        </button>
         <button class="btn btn-sm header-btn" id="close" type="button" aria-label="Close">
           <i class="eqp-x" aria-hidden="true"></i>
         </button>
       </div>
     </header>
+    <div class="settings-panel hidden" id="settingsPanel" aria-hidden="true">
+      <a
+        class="donate-btn"
+        href="https://buymeacoffee.com/nikosardas"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Donate"
+      >
+        <img src="/assets/images/donation-heart.svg" alt="" />
+        <span class="donate-text">Support EQ+</span>
+      </a>
+      <button
+        class="theme-toggle"
+        id="themeToggle"
+        type="button"
+        aria-label="Toggle light theme"
+      >
+        Light theme
+      </button>
+    </div>
     <div class="opaque" id="EQapp" role="main">
       <div class="options-bar block" id="bottom">
         <div class="_inner">
           <div class="col sel-col">
-            <select class="eqGrp info sel" id="presets" aria-label="Presets">
+            <select class="eqGrp info sel" id="presets" aria-label="Presets" title="Built-in presets">
               <option id="presetPlaceholder" disabled selected hidden>
                 Presets
               </option>
@@ -56,20 +85,38 @@
               </option>
             </select>
           </div>
-          <button class="info btn" id="saveSettingsBtn">
-            <i class="eqp-save icon-left" aria-hidden="true"></i> Save
-          </button>
-          <button class="hidden info btn" id="loadSettingsBtn">Load</button>
-          <button
-            class="info hidden btn"
-            id="deleteSettingsBtn"
-            type="button"
-            aria-label="Delete saved settings"
-          >
-            &#88;
-          </button>
-          <button class="info btn" id="resetBtn">
+          <button class="info btn" id="resetBtn" title="Reset all settings">
             <i class="eqp-refresh-cw icon-left" aria-hidden="true"></i> Reset
+          </button>
+        </div>
+        <div class="quick-actions">
+          <button class="info btn slot-btn" data-slot="1" type="button" aria-label="Preset slot 1" title="Preset slot 1">
+            <i class="eqp-save icon-left slot-icon" aria-hidden="true"></i> 1
+            <span class="slot-indicator" aria-hidden="true"></span>
+            <span class="slot-delete hidden" data-slot="1" role="button" aria-label="Delete preset slot 1" title="Delete preset slot 1">
+              <i class="eqp-x" aria-hidden="true"></i>
+            </span>
+          </button>
+          <button class="info btn slot-btn" data-slot="2" type="button" aria-label="Preset slot 2" title="Preset slot 2">
+            <i class="eqp-save icon-left slot-icon" aria-hidden="true"></i> 2
+            <span class="slot-indicator" aria-hidden="true"></span>
+            <span class="slot-delete hidden" data-slot="2" role="button" aria-label="Delete preset slot 2" title="Delete preset slot 2">
+              <i class="eqp-x" aria-hidden="true"></i>
+            </span>
+          </button>
+          <button class="info btn slot-btn" data-slot="3" type="button" aria-label="Preset slot 3" title="Preset slot 3">
+            <i class="eqp-save icon-left slot-icon" aria-hidden="true"></i> 3
+            <span class="slot-indicator" aria-hidden="true"></span>
+            <span class="slot-delete hidden" data-slot="3" role="button" aria-label="Delete preset slot 3" title="Delete preset slot 3">
+              <i class="eqp-x" aria-hidden="true"></i>
+            </span>
+          </button>
+          <button class="info btn slot-btn" data-slot="4" type="button" aria-label="Preset slot 4" title="Preset slot 4">
+            <i class="eqp-save icon-left slot-icon" aria-hidden="true"></i> 4
+            <span class="slot-indicator" aria-hidden="true"></span>
+            <span class="slot-delete hidden" data-slot="4" role="button" aria-label="Delete preset slot 4" title="Delete preset slot 4">
+              <i class="eqp-x" aria-hidden="true"></i>
+            </span>
           </button>
         </div>
         <div id="tabs">
@@ -371,16 +418,6 @@
         </div>
       </div>
     </div>
-    <a
-      class="donate-btn"
-      href="https://buymeacoffee.com/nikosardas"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Donate"
-      title="Donate"
-    >
-      <img src="/assets/images/donation-heart.svg" alt="Donate" />
-    </a>
     <script src="js/libs/jquery.min.js"></script>
     <script src="js/libs/jquery.knob.min.js"></script>
     <script src="js/libs/nprogress.js"></script>

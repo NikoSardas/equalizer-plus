@@ -66,6 +66,34 @@ function handleOffscreenMessage(message, sender, sendResponse) {
       capturedTab.saveSettings();
       break;
 
+    case 'savePresetSlot':
+      if (!capturedTab) {
+        handleError('savePresetSlot: no captured tab for tabId', tabId);
+        sendResponse({ success: false });
+        return;
+      }
+      savePresetSlot(capturedTabIndex, message.slot)
+        .then((success) => sendResponse({ success: Boolean(success) }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+
+    case 'loadPresetSlot':
+      if (!capturedTab) {
+        handleError('loadPresetSlot: no captured tab for tabId', tabId);
+        sendResponse({ success: false });
+        return;
+      }
+      loadPresetSlot(capturedTabIndex, tabId, message.slot)
+        .then((success) => sendResponse({ success: Boolean(success) }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+
+    case 'deletePresetSlot':
+      deletePresetSlot(message.slot)
+        .then((success) => sendResponse({ success: Boolean(success) }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+
     case 'volume':
       if (!capturedTab) {
         handleError('volume: no captured tab for tabId', tabId);
@@ -236,6 +264,16 @@ function handleOffscreenMessage(message, sender, sendResponse) {
       sendResponse(capturedTab.invert);
       break;
 
+    case 'getCurrentSettings':
+      if (!capturedTab) {
+        sendResponse(false);
+        break;
+      }
+      capturedTab.getSettings().then((settings) => {
+        sendResponse(settings);
+      });
+      return true;
+
     case 'tabRemoved':
       if (capturedTabIndex !== -1) {
         capturedTabsArr[capturedTabIndex].stopAudio();
@@ -283,6 +321,20 @@ async function fetchSavedSettings() {
   return await chrome.runtime.sendMessage({
     target: 'worker',
     type: 'getSavedSettings',
+  });
+}
+
+async function fetchPresetSlots() {
+  return await chrome.runtime.sendMessage({
+    target: 'worker',
+    type: 'getPresetSlots',
+  });
+}
+
+async function fetchStartupSettings() {
+  return await chrome.runtime.sendMessage({
+    target: 'worker',
+    type: 'getStartupSettings',
   });
 }
 
@@ -345,9 +397,10 @@ async function loadSavedSettings(capturedTabIndex, tabId) {
 
 async function captureTab(streamId, tabId) {
   const { settings } = await fetchSavedSettings();
-  const safeSettings = isPlainObject(settings)
+  const fallbackSettings = isPlainObject(settings)
     ? settings
     : await fetchDefaultSettings();
+  const safeSettings = fallbackSettings;
   const stream = await getStream(streamId);
 
   capturedTabsArr.push(new CapturedAudioObject({
@@ -378,6 +431,48 @@ async function loadPreset(capturedTabIndex, tabId, eqPreset) {
   }
   capturedTab.loadSettings(presetSettings);
   sendAudioSettingsToPopup(presetSettings, tabId);
+}
+
+async function savePresetSlot(capturedTabIndex, slot) {
+  const capturedTab = capturedTabsArr[capturedTabIndex];
+  if (!capturedTab) {
+    handleError('savePresetSlot: invalid captured tab index', capturedTabIndex);
+    return false;
+  }
+  const settings = await capturedTab.getSettings();
+  await chrome.runtime.sendMessage({
+    target: 'worker',
+    type: 'savePresetSlot',
+    slot,
+    settings,
+  });
+  return true;
+}
+
+async function loadPresetSlot(capturedTabIndex, tabId, slot) {
+  const capturedTab = capturedTabsArr[capturedTabIndex];
+  if (!capturedTab) {
+    handleError('loadPresetSlot: invalid captured tab index', capturedTabIndex);
+    return false;
+  }
+  const { presetSlots } = await fetchPresetSlots();
+  const slots = isPlainObject(presetSlots) ? presetSlots : {};
+  const slotSettings = slots[slot];
+  if (!isPlainObject(slotSettings)) {
+    return false;
+  }
+  capturedTab.loadSettings(slotSettings);
+  sendAudioSettingsToPopup(slotSettings, tabId);
+  return true;
+}
+
+async function deletePresetSlot(slot) {
+  await chrome.runtime.sendMessage({
+    target: 'worker',
+    type: 'deletePresetSlot',
+    slot,
+  });
+  return true;
 }
 
 function powerOff(capturedTabIndex) {

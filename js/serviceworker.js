@@ -3,9 +3,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function handleWorkerMessage(message, sender, sendResponse) {
-  const { target, type, tabId, data } = message;
+  const { target, type, tabId, data, slot, settings, enabled } = message;
 
   if (target !== 'worker') return;
+  if (!type || typeof type !== 'string') {
+    return;
+  }
 
   switch (type) {
     case 'popupReady':
@@ -22,6 +25,38 @@ function handleWorkerMessage(message, sender, sendResponse) {
       sendResponse(getDefaultSettings());
       break;
 
+    case 'getStartupSettings':
+      getStartupSettings().then((response) => {
+        sendResponse(response);
+      });
+      return true;
+
+    case 'setStartupSettings':
+      setStartupSettings(settings);
+      break;
+
+    case 'setStartupEnabled':
+      setStartupEnabled(enabled);
+      break;
+
+    case 'clearStartupSettings':
+      clearStartupSettings();
+      break;
+
+    case 'getPresetSlots':
+      getPresetSlots().then((response) => {
+        sendResponse(response);
+      });
+      return true;
+
+    case 'savePresetSlot':
+      savePresetSlot(slot, settings);
+      break;
+
+    case 'deletePresetSlot':
+      deletePresetSlot(slot);
+      break;
+
     case 'deleteSavedSettings':
       setDefaultSettings();
       setSavedState(false);
@@ -33,7 +68,7 @@ function handleWorkerMessage(message, sender, sendResponse) {
       break;
 
     default:
-      handleError('Unknown message type:', type);
+      console.warn('Unknown message type:', type);
       break;
   }
 }
@@ -105,6 +140,48 @@ async function saveSettings(settings) {
   await chrome.storage.sync.set({
     settings,
   });
+}
+
+async function getStartupSettings() {
+  return await chrome.storage.sync.get(['startupSettings', 'startupDefaultEnabled']);
+}
+
+async function setStartupSettings(settings) {
+  await chrome.storage.sync.set({
+    startupSettings: settings,
+    startupDefaultEnabled: true,
+  });
+}
+
+async function setStartupEnabled(enabled) {
+  await chrome.storage.sync.set({
+    startupDefaultEnabled: Boolean(enabled),
+  });
+}
+
+async function clearStartupSettings() {
+  await chrome.storage.sync.set({
+    startupSettings: null,
+    startupDefaultEnabled: false,
+  });
+}
+
+async function getPresetSlots() {
+  return await chrome.storage.sync.get('presetSlots');
+}
+
+async function savePresetSlot(slot, settings) {
+  if (!slot) return;
+  const { presetSlots = {} } = await chrome.storage.sync.get('presetSlots');
+  presetSlots[String(slot)] = settings;
+  await chrome.storage.sync.set({ presetSlots });
+}
+
+async function deletePresetSlot(slot) {
+  if (!slot) return;
+  const { presetSlots = {} } = await chrome.storage.sync.get('presetSlots');
+  delete presetSlots[String(slot)];
+  await chrome.storage.sync.set({ presetSlots });
 }
 
 function getDefaultSettings() {
@@ -295,6 +372,11 @@ function initializeStorage() {
   setDefaultSettings();
   setSavedState(false);
   setCollapsedState(true);
+  chrome.storage.sync.set({ presetSlots: {} });
+  chrome.storage.sync.set({
+    startupSettings: null,
+    startupDefaultEnabled: false,
+  });
 }
 
 async function getCapturedTabIndex(tabId) {

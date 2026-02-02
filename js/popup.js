@@ -4,10 +4,12 @@ const closeBtn = document.getElementById('close');
 const monoBtn = document.getElementById('monoBtn');
 const invertBtn = document.getElementById('invertBtn');
 const presetsSelect = document.getElementById('presets');
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const loadSettingsBtn = document.getElementById('loadSettingsBtn');
-const deleteSettingsBtn = document.getElementById('deleteSettingsBtn');
+const slotButtons = document.querySelectorAll('.slot-btn');
+const slotDeleteButtons = document.querySelectorAll('.slot-delete');
 const resetBtn = document.getElementById('resetBtn');
+const settingsToggle = document.getElementById('settingsToggle');
+const settingsPanel = document.getElementById('settingsPanel');
+const themeToggle = document.getElementById('themeToggle');
 const collapseElement = document.getElementsByClassName('collapse')[0];
 const collapseToggle = document.getElementById('collapse-toggle');
 const rangeInputs = document.querySelectorAll('input[type="range"]');
@@ -27,6 +29,7 @@ const DEFAULT_PRESET_LABEL = 'Presets';
 const DEFAULT_PAN_VALUE = 0;
 
 let tabId = null;
+let isUiInitialized = false;
 
 function isPlainObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value);
@@ -48,12 +51,38 @@ function initPopup(tab) {
   notifyWorkerReady();
 }
 
+function clearButtonFocusOnMouseUp() {
+  const blurActiveButton = (event) => {
+    const targetButton = event.target.closest('button, .btn');
+    if (targetButton && typeof targetButton.blur === 'function') {
+      setTimeout(() => targetButton.blur(), 0);
+      return;
+    }
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.tagName === 'SELECT') {
+      return;
+    }
+    if (
+      activeEl &&
+      activeEl !== document.body &&
+      typeof activeEl.blur === 'function'
+    ) {
+      setTimeout(() => activeEl.blur(), 0);
+    }
+  };
+
+  document.addEventListener('mouseup', blurActiveButton);
+  document.addEventListener('touchend', blurActiveButton);
+  document.addEventListener('pointerup', blurActiveButton);
+}
+
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   const [activeTab] = tabs || [];
   if (!activeTab) {
     return;
   }
 
+  clearButtonFocusOnMouseUp();
   initPopup(activeTab);
 });
 
@@ -184,25 +213,68 @@ function handlePresetsChange(event) {
 
 function handleSaveClick() {
   saveSettings();
-  showLoadActions();
 }
 
-function handleLoadClick() {
-  chrome.runtime.sendMessage({
-    target: 'offscreen',
-    type: 'loadSavedSettings',
-    tabId,
+function flashSlotIndicator(buttonEl) {
+  if (!buttonEl) return;
+  buttonEl.classList.remove('saved-pulse');
+  requestAnimationFrame(() => {
+    buttonEl.classList.add('saved-pulse');
+    setTimeout(() => {
+      buttonEl.classList.remove('saved-pulse');
+    }, 650);
   });
 }
 
-function handleDeleteClick() {
-  chrome.runtime.sendMessage({
-    target: 'offscreen',
-    type: 'deleteSavedSettings',
-    tabId,
-  });
+async function handleSlotClick(event) {
+  const slot = event.currentTarget.dataset.slot;
+  if (!slot) return;
 
-  showSaveActions();
+  const isSaved = event.currentTarget.classList.contains('slot-saved');
+
+  if (isSaved) {
+    const response = await chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: 'loadPresetSlot',
+      tabId,
+      slot,
+    });
+    if (!response || response.success === false) {
+      await showNotification('Could not load preset slot.');
+    }
+  } else {
+    const response = await chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: 'savePresetSlot',
+      tabId,
+      slot,
+    });
+    if (!response || response.success === false) {
+      await showNotification('Could not save preset slot.');
+    } else {
+      flashSlotIndicator(event.currentTarget);
+    }
+  }
+
+  await refreshPresetSlots();
+}
+
+async function handleSlotDeleteClick(event) {
+  event.stopPropagation();
+  const slot = event.currentTarget.dataset.slot;
+  if (!slot) return;
+
+  const response = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'deletePresetSlot',
+    tabId,
+    slot,
+  });
+  if (!response || response.success === false) {
+    await showNotification('Could not delete preset slot.');
+  }
+
+  await refreshPresetSlots();
 }
 
 function handleResetClick() {
@@ -213,6 +285,34 @@ function handleResetClick() {
   });
 
   presetsSelect.value = DEFAULT_PRESET_LABEL;
+}
+
+function handleSettingsToggleClick() {
+  if (!settingsPanel) return;
+  settingsPanel.classList.toggle('hidden');
+  settingsPanel.setAttribute(
+    'aria-hidden',
+    String(settingsPanel.classList.contains('hidden')),
+  );
+}
+
+function setTheme(mode) {
+  const isDark = mode !== 'light';
+  document.body.classList.toggle('dark-mode', isDark);
+  if (themeToggle) {
+    themeToggle.textContent = isDark ? 'Light theme' : 'Dark theme';
+    themeToggle.setAttribute(
+      'aria-label',
+      isDark ? 'Switch to light theme' : 'Switch to dark theme',
+    );
+  }
+}
+
+async function handleThemeToggleClick() {
+  const isDark = document.body.classList.contains('dark-mode');
+  const nextMode = isDark ? 'light' : 'dark';
+  setTheme(nextMode);
+  await chrome.storage.sync.set({ theme: nextMode });
 }
 
 function loadUIListeners() {
@@ -245,10 +345,19 @@ function loadUIListeners() {
   monoBtn.addEventListener('click', handleMonoClick);
   invertBtn.addEventListener('click', handleInvertClick);
   presetsSelect.addEventListener('change', handlePresetsChange);
-  saveSettingsBtn.addEventListener('click', handleSaveClick);
-  loadSettingsBtn.addEventListener('click', handleLoadClick);
-  deleteSettingsBtn.addEventListener('click', handleDeleteClick);
+  slotButtons.forEach((button) => {
+    button.addEventListener('click', handleSlotClick);
+  });
+  slotDeleteButtons.forEach((button) => {
+    button.addEventListener('click', handleSlotDeleteClick);
+  });
   resetBtn.addEventListener('click', handleResetClick);
+  if (settingsToggle && settingsPanel) {
+    settingsToggle.addEventListener('click', handleSettingsToggleClick);
+  }
+  if (themeToggle) {
+    themeToggle.addEventListener('click', handleThemeToggleClick);
+  }
 }
 
 function notifyWorkerReady() {
@@ -294,9 +403,8 @@ async function loadModules(moduleSettings) {
     });
   }
 
-  const { collapsed, saved } = storageObject || {};
+  const { collapsed, theme } = storageObject || {};
   const isCollapsed = collapsed ?? true;
-  const isSaved = saved ?? false;
   const safeSettings = isPlainObject(settings) ? settings : {};
   const { volume, mono, pan, eq, compressor, invert } = safeSettings;
 
@@ -307,7 +415,11 @@ async function loadModules(moduleSettings) {
   if (isPlainObject(eq)) initEq(eq);
   if (volume != null) initVolume(volume);
 
-  updateSavedActions(isSaved);
+  setTheme(theme);
+
+  isUiInitialized = true;
+
+  await refreshPresetSlots();
 }
 
 function getNotification(message) {
@@ -535,10 +647,6 @@ function changeVolume(volumeValue) {
   setVolumeNumber(volumeValue);
 }
 
-function updateSavedActions(isSaved) {
-  isSaved ? showLoadActions() : showSaveActions();
-}
-
 function saveSettings() {
   chrome.runtime.sendMessage({
     target: 'offscreen',
@@ -547,14 +655,40 @@ function saveSettings() {
   });
 }
 
-function showLoadActions() {
-  saveSettingsBtn.classList.add('hidden');
-  deleteSettingsBtn.classList.remove('hidden');
-  loadSettingsBtn.classList.remove('hidden');
+async function fetchPresetSlots() {
+  const response = await chrome.runtime.sendMessage({
+    target: 'worker',
+    type: 'getPresetSlots',
+  });
+  return response || {};
 }
 
-function showSaveActions() {
-  saveSettingsBtn.classList.remove('hidden');
-  deleteSettingsBtn.classList.add('hidden');
-  loadSettingsBtn.classList.add('hidden');
+function updatePresetSlotUI(presetSlots) {
+  const slots = isPlainObject(presetSlots?.presetSlots)
+    ? presetSlots.presetSlots
+    : isPlainObject(presetSlots)
+      ? presetSlots
+      : {};
+
+  slotButtons.forEach((button) => {
+    const slot = button.dataset.slot;
+    const isSaved = Boolean(slot && slots[slot]);
+    const icon = button.querySelector('.slot-icon');
+    const deleteButton = button.querySelector('.slot-delete');
+
+    button.classList.toggle('slot-saved', isSaved);
+    if (icon) {
+      icon.className = isSaved
+        ? 'eqp-check icon-left slot-icon'
+        : 'eqp-save icon-left slot-icon';
+    }
+    if (deleteButton) {
+      deleteButton.classList.toggle('hidden', !isSaved);
+    }
+  });
+}
+
+async function refreshPresetSlots() {
+  const response = await fetchPresetSlots();
+  updatePresetSlotUI(response);
 }

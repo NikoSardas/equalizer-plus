@@ -53,6 +53,28 @@ body {
   line-height: 1;
 }
 
+.btn:focus,
+.btn:focus-visible,
+.sel:focus,
+.sel:focus-visible,
+button:focus,
+button:focus-visible {
+  outline: none;
+}
+
+.btn:focus-visible,
+.sel:focus-visible,
+button:focus-visible {
+  outline: 2px solid #f9b43d;
+  outline-offset: 2px;
+}
+
+.btn:focus:not(:focus-visible),
+.sel:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .sel:hover,
 .sel:focus,
 .btn:hover,
@@ -277,6 +299,7 @@ body {
   padding: 5px 13px;
   border-bottom: 1px solid rgba(21, 22, 23, 0.2);
   background: #e8e8e8;
+  position: relative;
 }
 
 .header-brand {
@@ -337,7 +360,46 @@ select:hover {
 }
 
 .options-bar .sel-col {
+  flex: 2;
+}
+
+.options-bar ._inner > button {
   flex: 1;
+}
+
+.options-bar .quick-actions {
+  display: flex;
+  margin: 0 -5px 10px;
+}
+
+.options-bar .quick-actions > .slot-btn {
+  flex: 1;
+  margin: 0 5px;
+  position: relative;
+  padding: 0 36px;
+}
+
+.slot-btn .slot-delete {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  height: 18px;
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.25);
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.slot-btn .slot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
 }
 
 #volumeDiv {
@@ -473,6 +535,104 @@ select:hover {
   margin-left: 14px;
 }
 
+@keyframes startup-saved-pulse {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.2);
+  }
+}
+
+.startup-default.saved-pulse .startup-indicator {
+  animation: startup-saved-pulse 600ms ease-out;
+}
+
+.slot-actions {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slot-delete {
+  height: 18px;
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.25);
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.slot-delete i {
+  line-height: 1;
+  font-size: 10px;
+}
+
+.slot-btn:hover .slot-delete {
+  opacity: 1;
+}
+
+.settings-panel {
+  position: absolute;
+  right: 10px;
+  top: 40px;
+  background: #1b1c1d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  z-index: 30;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.settings-panel > * {
+  width: 100%;
+}
+
+.settings-panel .donate-btn,
+.settings-panel .theme-toggle {
+  justify-content: flex-start;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #242628;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.settings-panel .donate-btn:hover,
+.settings-panel .theme-toggle:hover {
+  background: #2a2d30;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 12px;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+
 #deleteSettingsBtn {
   margin-left: 0;
   border-top-left-radius: 0px;
@@ -486,25 +646,24 @@ select:hover {
 }
 
 .donate-btn {
-  position: fixed;
-  right: 10px;
-  bottom: 10px;
-  width: 36px;
-  height: 36px;
+  position: static;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: transparent;
-  box-shadow: 0 1px 2px 1px #212324;
+  justify-content: flex-start;
+  gap: 8px;
   z-index: 20;
 }
 
 .donate-btn img {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   display: block;
   filter: none;
+}
+
+.donate-text {
+  font-size: 12px;
+  color: #fff;
 }
 
 .donate-btn:hover,
