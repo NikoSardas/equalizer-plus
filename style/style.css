@@ -31,11 +31,20 @@ body {
   line-height: 1.5;
   background: #e8e8e8;
   user-select: none;
+  --accent: #f59821;
 }
 
 body.custom-theme {
-  background: linear-gradient(to bottom, var(--bg1), var(--bg2));
+  background: var(--bg2);
   color: var(--text);
+}
+
+body.custom-theme #header {
+  background: var(--bg1);
+}
+
+body.dark-mode.custom-theme {
+  background: var(--bg2);
 }
 
 body:not(.dark-mode):not(.custom-theme) .settings-panel {
@@ -45,7 +54,7 @@ body:not(.dark-mode):not(.custom-theme) .settings-panel {
 }
 
 body:not(.dark-mode):not(.custom-theme) .settings-panel .donate-btn,
-body:not(.dark-mode):not(.custom-theme) .settings-panel .theme-toggle,
+body:not(.dark-mode):not(.custom-theme) .settings-panel .theme-btn,
 body:not(.dark-mode):not(.custom-theme) .settings-panel .theme-random {
   background: #ffffff;
   color: #212324;
@@ -57,8 +66,63 @@ body:not(.dark-mode):not(.custom-theme) .donate-text {
   color: #212324;
 }
 
+body:not(.dark-mode):not(.custom-theme) .btn,
+body:not(.dark-mode):not(.custom-theme) .sel {
+  color: #212324;
+  background: #f3f3f3;
+}
+
+body:not(.dark-mode):not(.custom-theme) .btn:hover,
+body:not(.dark-mode):not(.custom-theme) .btn:focus,
+body:not(.dark-mode):not(.custom-theme) .sel:hover,
+body:not(.dark-mode):not(.custom-theme) .sel:focus {
+  background: #e1e1e1;
+}
+
+
 #EQapp {
   width: 360px;
+  position: relative;
+}
+
+#EQapp.save-flash {
+  animation: saveFlash 0.65s ease;
+}
+
+#EQapp.save-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--accent, #f9b43d) 18%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: saveFlashOverlay 0.65s ease;
+}
+
+@keyframes saveFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--accent, #f9b43d),
+      0 0 14px color-mix(in srgb, var(--accent, #f9b43d) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes saveFlashOverlay {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .btn,
@@ -72,7 +136,7 @@ body:not(.dark-mode):not(.custom-theme) .donate-text {
   height: 2.7em;
   padding: 0 1em;
   background: #f3f3f3;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
   line-height: 1;
 }
@@ -272,7 +336,7 @@ button:focus:not(:focus-visible) {
 }
 
 .radio input:checked ~ b {
-  box-shadow: inset 0 0 0 2px #f8aa24;
+  box-shadow: inset 0 0 0 2px var(--accent, #f8aa24);
 }
 
 .radio input:checked ~ b:after {
@@ -287,7 +351,7 @@ button:focus:not(:focus-visible) {
   right: 0;
   margin: auto;
   position: absolute;
-  background: #f8aa24;
+  background: var(--accent, #f8aa24);
 }
 
 .radio.square b {
@@ -322,7 +386,7 @@ button:focus:not(:focus-visible) {
   align-items: center;
   padding: 5px 13px;
   border-bottom: 1px solid rgba(21, 22, 23, 0.2);
-  background: #e8e8e8;
+  background: inherit;
   position: relative;
 }
 
@@ -392,40 +456,158 @@ select:hover {
 }
 
 .options-bar .quick-actions {
-  display: flex;
-  margin: 0 -5px 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 10px;
 }
 
 
 .options-bar .quick-actions > .slot-btn {
-  flex: 1;
-  margin: 0 5px;
   position: relative;
-  padding: 0 36px;
+  padding: 0;
+  justify-content: center;
+  width: 100%;
+  display: flex;
+  text-align: center;
+  justify-self: stretch;
+  align-self: stretch;
 }
 
-.slot-btn .slot-delete {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  height: 18px;
-  width: 18px;
+.slot-content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  flex: 1;
+  position: relative;
+}
+
+.slot-center {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(0, 0, 0, 0.25);
-  line-height: 1;
-  opacity: 0.8;
+  gap: 10px;
+  justify-self: center;
+  width: 100%;
+  text-align: center;
 }
 
-.slot-btn .slot-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.slot-save {
   font-size: 18px;
 }
+
+.slot-number {
+  display: inline;
+  font-weight: 600;
+}
+
+.slot-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent, #f9b43d);
+  min-width: 24px;
+  position: absolute;
+  left: 10px;
+}
+
+.slot-btn.slot-saved .slot-check {
+  visibility: visible;
+  opacity: 1;
+}
+
+.slot-btn .slot-check.hidden {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.slot-btn.slot-saved .slot-save {
+  display: none;
+}
+
+.slot-delete.hidden {
+  display: inline-flex !important;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.slot-delete {
+  height: 18px;
+  min-width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1;
+  opacity: 0.8;
+  position: absolute;
+  right: 4px;
+}
+
+.slot-delete i {
+  line-height: 1;
+  font-size: 10px;
+}
+
+ 
+
+.slot-btn:hover .slot-delete {
+  opacity: 1;
+}
+
+.slot-btn.loaded-pulse {
+  animation: loadGlow 0.65s ease;
+  position: relative;
+}
+
+.slot-btn.loaded-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--accent, #f9b43d) 22%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: loadFill 0.65s ease;
+}
+
+@keyframes loadGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    filter: none;
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--accent, #f9b43d),
+      0 0 12px color-mix(in srgb, var(--accent, #f9b43d) 60%, transparent);
+    filter: brightness(1.15);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    filter: none;
+  }
+}
+
+@keyframes loadFill {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.slot-delete:hover,
+.slot-delete:focus-visible {
+  color: var(--accent, #f9b43d);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
+}
+
 
 #volumeDiv {
   display: flex;
@@ -464,6 +646,45 @@ select:hover {
 
 #volumeDiv .volume ._right {
   padding-left: 10px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.toggle-row .startup-toggle-icon {
+  margin-left: auto;
+}
+
+.startup-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.startup-toggle-icon.is-active {
+  color: color-mix(in srgb, var(--accent, #f9b43d) 55%, #ffffff 45%);
+  border-color: transparent;
+  box-shadow: none;
+  background: transparent;
+}
+
+body:not(.dark-mode):not(.custom-theme) .startup-toggle-icon {
+  color: #212324;
+}
+
+body:not(.dark-mode):not(.custom-theme) .startup-toggle-icon.is-active {
+  color: #8a4e00;
+  box-shadow: none;
 }
 
 .eq-row {
@@ -530,48 +751,6 @@ select:hover {
   font-weight: bold;
 }
 
-#equalizer-toggle {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  width: 100%;
-  background: none;
-  border: none;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  text-transform: uppercase;
-  font-size: 0.75em;
-  padding: 10px 0;
-  margin: 0;
-  font-weight: bold;
-}
-
-#equalizer-toggle:hover {
-  opacity: 0.7;
-}
-
-#equalizer-toggle:focus-visible {
-  outline: 2px solid #f9b43d;
-  outline-offset: 2px;
-}
-
-#equalizer-toggle i {
-  margin-left: 10px;
-  display: inline-block;
-}
-
-#equalizer-toggle.open i {
-  transform: rotate(180deg);
-}
-
-#equalizer-toggle:not(.open) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.collapsible:not(.open) #equalizer-panel {
-  display: none;
-}
 
 #collapse-toggle:hover {
   opacity: 0.7;
@@ -604,37 +783,6 @@ select:hover {
 }
 
 
-.slot-actions {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.slot-delete {
-  height: 18px;
-  width: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(0, 0, 0, 0.25);
-  line-height: 1;
-  opacity: 0.8;
-}
-
-.slot-delete i {
-  line-height: 1;
-  font-size: 10px;
-}
-
-.slot-btn:hover .slot-delete {
-  opacity: 1;
-}
 
 .settings-panel {
   position: absolute;
@@ -657,7 +805,7 @@ select:hover {
 }
 
 .settings-panel .donate-btn,
-.settings-panel .theme-toggle,
+.settings-panel .theme-btn,
 .settings-panel .theme-random {
   justify-content: flex-start;
   padding: 8px 12px;
@@ -668,12 +816,12 @@ select:hover {
 }
 
 .settings-panel .donate-btn:hover,
-.settings-panel .theme-toggle:hover,
+.settings-panel .theme-btn:hover,
 .settings-panel .theme-random:hover {
   background: #2a2d30;
 }
 
-.theme-toggle {
+.theme-btn {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -682,6 +830,16 @@ select:hover {
   border: none;
   cursor: pointer;
   text-align: left;
+}
+
+.settings-panel .theme-btn:focus,
+.settings-panel .theme-btn:focus-visible,
+.settings-panel .theme-btn:active {
+  box-shadow: none;
+}
+
+.settings-panel .theme-btn:active {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .theme-random {
@@ -741,51 +899,20 @@ select:hover {
   box-shadow: 0 2px 6px 1px rgba(33, 35, 36, 0.6);
 }
 
-.startup-toggle {
-  position: fixed;
-  right: 10px;
-  bottom: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: rgba(33, 35, 36, 0.9);
-  box-shadow: 0 1px 2px 1px #212324;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-  z-index: 20;
-}
-
-.startup-toggle input[type='checkbox'] {
-  appearance: none;
-  height: 14px;
-  width: 14px;
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.startup-toggle input[type='checkbox']:checked {
-  box-shadow: inset 0 0 0 2px #f9b43d;
-  background: rgba(249, 180, 61, 0.2);
-}
 
 /* Dark mode overrides */
 body.dark-mode {
-  background: linear-gradient(to bottom, #151617, #212324);
+  background: #212324;
   color: #fff;
 }
 
 body.dark-mode #header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: #151617;
+  background: inherit;
 }
 
 body.custom-theme #header {
   border-bottom: 1px solid var(--border);
-  background: var(--bg1);
 }
 
 body.dark-mode h5 {
@@ -804,12 +931,14 @@ body.dark-mode .sel,
 body.dark-mode .btn {
   background: #212324;
   color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 body.custom-theme .sel,
 body.custom-theme .btn {
-  background: var(--panel);
+  background: var(--panel, #212324);
   color: var(--text);
+  border: 1px solid var(--border);
 }
 
 body.custom-theme .donate-text {
@@ -827,7 +956,9 @@ body.custom-theme .sel:hover,
 body.custom-theme .sel:focus,
 body.custom-theme .btn:hover,
 body.custom-theme .btn:focus {
-  background: var(--panel-hover);
+  background: var(--panel-hover, #343537);
+  border-color: var(--accent, #f9b43d);
+  box-shadow: 0 0 0 1px var(--accent, #f9b43d);
 }
 
 body.dark-mode .sel:hover option,
@@ -837,12 +968,17 @@ body.dark-mode .btn:focus option {
   color: #fff;
 }
 
+.sel option:checked {
+  background-color: var(--accent, #f59821);
+  color: #fff;
+}
+
 body.dark-mode .tab {
   background: #212324;
 }
 
 body.custom-theme .tab {
-  background: var(--panel);
+  background: var(--panel, #212324);
 }
 
 body.dark-mode input[type='range'] {
@@ -850,7 +986,15 @@ body.dark-mode input[type='range'] {
 }
 
 body.custom-theme input[type='range'] {
-  background-color: var(--panel-hover);
+  background-color: var(--panel-hover, #343537);
+}
+
+body.custom-theme .radio input:checked ~ b {
+  box-shadow: inset 0 0 0 2px var(--accent, #f9b43d);
+}
+
+body.custom-theme .radio input:checked ~ b:after {
+  background: var(--accent, #f9b43d);
 }
 
 body.dark-mode .radio b {
@@ -858,9 +1002,9 @@ body.dark-mode .radio b {
 }
 
 body.dark-mode .radio input:checked ~ b {
-  box-shadow: inset 0 0 0 2px #f9b43d;
+  box-shadow: inset 0 0 0 2px var(--accent, #f9b43d);
 }
 
 body.dark-mode .radio input:checked ~ b:after {
-  background: #f9b43d;
+  background: var(--accent, #f9b43d);
 }

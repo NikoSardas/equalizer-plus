@@ -338,6 +338,8 @@ async function fetchStartupSettings() {
   });
 }
 
+
+
 function handleError(message = 'An error occurred', error = null) {
   if (error instanceof Error) {
     throw error;
@@ -396,6 +398,20 @@ async function loadSavedSettings(capturedTabIndex, tabId) {
 }
 
 async function captureTab(streamId, tabId) {
+  const { startupSettings, startupDefaultEnabled } = await fetchStartupSettings();
+  if (startupDefaultEnabled && isPlainObject(startupSettings)) {
+    const stream = await getStream(streamId);
+    capturedTabsArr.push(
+      new CapturedAudioObject({
+        tabId,
+        stream,
+        settings: startupSettings,
+      }),
+    );
+    sendAudioSettingsToPopup(startupSettings, tabId);
+    return;
+  }
+
   const { settings } = await fetchSavedSettings();
   const fallbackSettings = isPlainObject(settings)
     ? settings

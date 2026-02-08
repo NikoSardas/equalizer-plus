@@ -9,11 +9,10 @@ const slotDeleteButtons = document.querySelectorAll('.slot-delete');
 const resetBtn = document.getElementById('resetBtn');
 const settingsToggle = document.getElementById('settingsToggle');
 const settingsPanel = document.getElementById('settingsPanel');
-const themeToggle = document.getElementById('themeToggle');
+const themeLight = document.getElementById('themeLight');
+const themeDark = document.getElementById('themeDark');
 const themeRandom = document.getElementById('themeRandom');
-const startupDefaultCheckbox = document.getElementById('startupDefault');
-const equalizerToggle = document.getElementById('equalizer-toggle');
-const equalizerContainer = document.getElementById('equalizer');
+const startupToggle = document.getElementById('startupToggle');
 const collapseElement = document.getElementsByClassName('collapse')[0];
 const collapseToggle = document.getElementById('collapse-toggle');
 const rangeInputs = document.querySelectorAll('input[type="range"]');
@@ -229,6 +228,17 @@ function flashSlotIndicator(buttonEl) {
   });
 }
 
+function flashSlotLoad(buttonEl) {
+  if (!buttonEl) return;
+  buttonEl.classList.remove('loaded-pulse');
+  requestAnimationFrame(() => {
+    buttonEl.classList.add('loaded-pulse');
+    setTimeout(() => {
+      buttonEl.classList.remove('loaded-pulse');
+    }, 650);
+  });
+}
+
 async function handleSlotClick(event) {
   const slot = event.currentTarget.dataset.slot;
   if (!slot) return;
@@ -244,6 +254,8 @@ async function handleSlotClick(event) {
     });
     if (!response || response.success === false) {
       await showNotification('Could not load preset slot.');
+    } else {
+      flashSlotLoad(event.currentTarget);
     }
   } else {
     const response = await chrome.runtime.sendMessage({
@@ -299,19 +311,6 @@ function handleSettingsToggleClick() {
   );
 }
 
-function setEqualizerOpen(isOpen) {
-  if (!equalizerContainer || !equalizerToggle) return;
-  equalizerContainer.classList.toggle('open', isOpen);
-  equalizerToggle.classList.toggle('open', isOpen);
-  equalizerToggle.setAttribute('aria-expanded', String(isOpen));
-}
-
-function handleEqualizerToggleClick() {
-  if (!equalizerContainer) return;
-  const isOpen = !equalizerContainer.classList.contains('open');
-  setEqualizerOpen(isOpen);
-  chrome.storage.sync.set({ showEqualizer: isOpen });
-}
 
 function setCompressorOpen(isOpen) {
   const isExpanded = Boolean(isOpen);
@@ -335,42 +334,69 @@ function setTheme(mode) {
   document.body.style.removeProperty('--text');
   document.body.style.removeProperty('--border');
   document.body.style.removeProperty('--accent');
-  if (themeToggle) {
-    themeToggle.textContent = isDark ? 'Light theme' : 'Dark theme';
-    themeToggle.setAttribute(
-      'aria-label',
-      isDark ? 'Switch to light theme' : 'Switch to dark theme',
-    );
+  if (themeLight) {
+    themeLight.classList.toggle('is-active', !isDark);
   }
+  if (themeDark) {
+    themeDark.classList.toggle('is-active', isDark);
+  }
+  updatePanTheme();
 }
 
-async function handleThemeToggleClick() {
-  const isDark = document.body.classList.contains('dark-mode');
-  const nextMode = isDark ? 'light' : 'dark';
-  setTheme(nextMode);
-  await chrome.storage.sync.set({ theme: nextMode, customTheme: null });
+async function handleThemeLightClick() {
+  setTheme('light');
+  await chrome.storage.sync.set({ theme: 'light', customTheme: null });
+}
+
+async function handleThemeDarkClick() {
+  setTheme('dark');
+  await chrome.storage.sync.set({ theme: 'dark', customTheme: null });
 }
 
 function applyCustomTheme(theme) {
   if (!theme || typeof theme !== 'object') return;
-  document.body.classList.add('dark-mode');
+  const isDark = theme.mode !== 'light';
+  document.body.classList.toggle('dark-mode', isDark);
   document.body.classList.add('custom-theme');
   document.body.style.setProperty('--bg1', theme.bg1);
   document.body.style.setProperty('--bg2', theme.bg2);
-  document.body.style.setProperty('--panel', theme.panel);
-  document.body.style.setProperty('--panel-hover', theme.panelHover);
+  if (theme.panel) {
+    document.body.style.setProperty('--panel', theme.panel);
+  } else {
+    document.body.style.removeProperty('--panel');
+  }
+  if (theme.panelHover) {
+    document.body.style.setProperty('--panel-hover', theme.panelHover);
+  } else {
+    document.body.style.removeProperty('--panel-hover');
+  }
   document.body.style.setProperty('--text', theme.text);
   document.body.style.setProperty('--border', theme.border);
   document.body.style.setProperty('--accent', theme.accent);
+  if (themeLight) themeLight.classList.remove('is-active');
+  if (themeDark) themeDark.classList.remove('is-active');
+  updatePanTheme();
 }
 
 function generateRandomTheme() {
   const hue = Math.floor(Math.random() * 360);
+  const isLight = Math.random() < 0.5;
+  if (isLight) {
+    return {
+      mode: 'light',
+      bg1: `hsl(${hue}, 20%, 92%)`,
+      bg2: `hsl(${hue}, 20%, 88%)`,
+      panel: `hsl(${hue}, 18%, 96%)`,
+      panelHover: `hsl(${hue}, 18%, 90%)`,
+      text: '#212324',
+      border: 'rgba(0, 0, 0, 0.08)',
+      accent: `hsl(${(hue + 30) % 360}, 70%, 45%)`,
+    };
+  }
   return {
-    bg1: `hsl(${hue}, 18%, 10%)`,
-    bg2: `hsl(${hue}, 18%, 14%)`,
-    panel: `hsl(${hue}, 14%, 18%)`,
-    panelHover: `hsl(${hue}, 14%, 22%)`,
+    mode: 'dark',
+    bg1: `hsl(${hue}, 18%, 6%)`,
+    bg2: `hsl(${hue}, 18%, 10%)`,
     text: '#f5f6f7',
     border: 'rgba(255, 255, 255, 0.06)',
     accent: `hsl(${(hue + 30) % 360}, 80%, 55%)`,
@@ -380,32 +406,70 @@ function generateRandomTheme() {
 async function handleThemeRandomClick() {
   const theme = generateRandomTheme();
   applyCustomTheme(theme);
+  if (themeLight) themeLight.classList.remove('is-active');
+  if (themeDark) themeDark.classList.remove('is-active');
   await chrome.storage.sync.set({ customTheme: theme, theme: 'custom' });
 }
 
+function flashSaveUI() {
+  if (!app) return;
+  app.classList.remove('save-flash');
+  requestAnimationFrame(() => {
+    app.classList.add('save-flash');
+    setTimeout(() => {
+      app.classList.remove('save-flash');
+    }, 650);
+  });
+}
+
 async function handleStartupToggleClick() {
-  if (!startupDefaultCheckbox) return;
-  const isChecked = startupDefaultCheckbox.checked;
-  if (isChecked) {
-    const currentSettings = await chrome.runtime.sendMessage({
+  if (!startupToggle) return;
+  const isActive = startupToggle.classList.contains('is-active');
+
+  if (isActive) {
+    try {
+      await chrome.runtime.sendMessage({
+        target: 'worker',
+        type: 'clearStartupSettings',
+      });
+      startupToggle.classList.remove('is-active');
+      startupToggle.setAttribute('aria-pressed', 'false');
+      return;
+    } catch (error) {
+      await showNotification('Could not clear startup settings.');
+      return;
+    }
+  }
+
+  let currentSettings = null;
+  try {
+    currentSettings = await chrome.runtime.sendMessage({
       target: 'offscreen',
       type: 'getCurrentSettings',
       tabId,
     });
-    if (currentSettings) {
-      await chrome.runtime.sendMessage({
-        target: 'worker',
-        type: 'setStartupSettings',
-        settings: currentSettings,
-      });
-    }
-  } else {
+  } catch (error) {
+    currentSettings = null;
+  }
+  if (!currentSettings) {
+    await showNotification('Could not read current settings.');
+    return;
+  }
+
+  try {
     await chrome.runtime.sendMessage({
       target: 'worker',
-      type: 'clearStartupSettings',
+      type: 'setStartupSettings',
+      settings: currentSettings,
     });
+    startupToggle.classList.add('is-active');
+    startupToggle.setAttribute('aria-pressed', 'true');
+    flashSaveUI();
+  } catch (error) {
+    await showNotification('Could not save startup settings.');
   }
 }
+
 
 function loadUIListeners() {
   volumeFader.addEventListener('input', ({ target }) => {
@@ -433,9 +497,6 @@ function loadUIListeners() {
   });
 
   collapseToggle.addEventListener('click', handleCollapseToggleClick);
-  if (equalizerToggle) {
-    equalizerToggle.addEventListener('click', handleEqualizerToggleClick);
-  }
   closeBtn.addEventListener('click', handleCloseClick);
   monoBtn.addEventListener('click', handleMonoClick);
   invertBtn.addEventListener('click', handleInvertClick);
@@ -450,14 +511,23 @@ function loadUIListeners() {
   if (settingsToggle && settingsPanel) {
     settingsToggle.addEventListener('click', handleSettingsToggleClick);
   }
-  if (themeToggle) {
-    themeToggle.addEventListener('click', handleThemeToggleClick);
+  if (themeLight) {
+    themeLight.addEventListener('click', handleThemeLightClick);
+  }
+  if (themeDark) {
+    themeDark.addEventListener('click', handleThemeDarkClick);
   }
   if (themeRandom) {
     themeRandom.addEventListener('click', handleThemeRandomClick);
   }
-  if (startupDefaultCheckbox) {
-    startupDefaultCheckbox.addEventListener('change', handleStartupToggleClick);
+  if (startupToggle) {
+    startupToggle.addEventListener('click', handleStartupToggleClick);
+    startupToggle.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleStartupToggleClick();
+      }
+    });
   }
 }
 
@@ -504,16 +574,23 @@ async function loadModules(moduleSettings) {
     });
   }
 
-  const { collapsed, theme, customTheme, startupDefaultEnabled, showEqualizer, showCompressor } =
-    storageObject || {};
+  const {
+    collapsed,
+    theme,
+    customTheme,
+    startupDefaultEnabled,
+    startupSettings,
+    showCompressor,
+  } = storageObject || {};
   const isCollapsed = collapsed ?? true;
   const safeSettings = isPlainObject(settings) ? settings : {};
   const { volume, mono, pan, eq, compressor, invert } = safeSettings;
 
+  setCollapsed(isCollapsed);
   if (mono != null) initMono(mono);
   if (invert != null) initInvert(invert);
   if (pan != null) initPan(pan);
-  if (isPlainObject(compressor)) initCompressor(compressor, isCollapsed);
+  if (isPlainObject(compressor)) initCompressor(compressor);
   if (isPlainObject(eq)) initEq(eq);
   if (volume != null) initVolume(volume);
 
@@ -523,13 +600,13 @@ async function loadModules(moduleSettings) {
     setTheme(theme);
   }
 
-  if (startupDefaultCheckbox) {
-    startupDefaultCheckbox.checked = Boolean(startupDefaultEnabled);
+  if (startupToggle) {
+    const enabled = Boolean(startupDefaultEnabled && startupSettings);
+    startupToggle.classList.toggle('is-active', enabled);
+    startupToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
   }
 
-  const eqOpen = showEqualizer ?? true;
   const compOpen = showCompressor ?? true;
-  setEqualizerOpen(eqOpen);
   setCompressorOpen(compOpen);
 
   await refreshPresetSlots();
@@ -561,8 +638,11 @@ function handleError(message = 'An error occurred', error = null) {
 }
 
 function initPan(pan) {
+  const accent = getComputedStyle(document.body)
+    .getPropertyValue('--accent')
+    .trim() || '#f59821';
   panFader.knob({
-    fgColor: '#f59821',
+    fgColor: accent,
     bgColor: 'white',
     angleOffset: -125,
     angleArc: 250,
@@ -587,6 +667,16 @@ function initPan(pan) {
     setPan(DEFAULT_PAN_VALUE);
     updatePanAria(DEFAULT_PAN_VALUE);
   });
+}
+
+function updatePanTheme() {
+  const accent = getComputedStyle(document.body)
+    .getPropertyValue('--accent')
+    .trim() || '#f59821';
+  try {
+    panFader.trigger('configure', { fgColor: accent });
+    panFader.trigger('change');
+  } catch (error) {}
 }
 
 function setPan(panValue) {
@@ -636,9 +726,7 @@ async function setInvert(isInverted) {
   setInvertButton(isInverted);
 }
 
-function initCompressor(compressorSettings, collapsed) {
-  setCollapsed(collapsed);
-
+function initCompressor(compressorSettings) {
   Object.entries(compressorSettings).forEach(([key, value]) => {
     const sliderEl = document.getElementById(key);
     const valueEl = document.getElementById(`${key}Val`);
@@ -660,6 +748,7 @@ function setCollapsed(isCollapsed) {
   collapseElement.classList.toggle('open', isExpanded);
   collapseToggle.classList.toggle('open', isExpanded);
   collapseToggle.setAttribute('aria-expanded', String(isExpanded));
+  collapseElement.style.display = isExpanded ? 'block' : 'none';
 }
 
 function updatePanAria(value) {
@@ -786,17 +875,15 @@ function updatePresetSlotUI(presetSlots) {
   slotButtons.forEach((button) => {
     const slot = button.dataset.slot;
     const isSaved = Boolean(slot && slots[slot]);
-    const icon = button.querySelector('.slot-icon');
     const deleteButton = button.querySelector('.slot-delete');
 
     button.classList.toggle('slot-saved', isSaved);
-    if (icon) {
-      icon.className = isSaved
-        ? 'eqp-check icon-left slot-icon'
-        : 'eqp-save icon-left slot-icon';
-    }
     if (deleteButton) {
       deleteButton.classList.toggle('hidden', !isSaved);
+    }
+    const checkEl = button.querySelector('.slot-check');
+    if (checkEl) {
+      checkEl.classList.toggle('hidden', !isSaved);
     }
   });
 }

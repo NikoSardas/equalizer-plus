@@ -35,10 +35,6 @@ function handleWorkerMessage(message, sender, sendResponse) {
       setStartupSettings(settings);
       break;
 
-    case 'setStartupEnabled':
-      setStartupEnabled(enabled);
-      break;
-
     case 'clearStartupSettings':
       clearStartupSettings();
       break;
@@ -150,12 +146,6 @@ async function setStartupSettings(settings) {
   await chrome.storage.sync.set({
     startupSettings: settings,
     startupDefaultEnabled: true,
-  });
-}
-
-async function setStartupEnabled(enabled) {
-  await chrome.storage.sync.set({
-    startupDefaultEnabled: Boolean(enabled),
   });
 }
 
