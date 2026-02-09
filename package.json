@@ -8,5 +8,8 @@
     "eslint": "^8.57.1",
     "prettier": "^3.8.0",
     "prettier-eslint": "^16.4.2"
+  },
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist/js/libs && cp manifest.json popup.html offscreen.html dist/ && cp -R assets style dist/ && cp js/popup.js js/offscreen.js js/serviceworker.js dist/js/ && cp -R js/libs dist/js/"
   }
 }

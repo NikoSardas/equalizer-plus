@@ -312,17 +312,6 @@ function handleSettingsToggleClick() {
 }
 
 
-function setCompressorOpen(isOpen) {
-  const isExpanded = Boolean(isOpen);
-  collapseElement.classList.toggle('open', isExpanded);
-  collapseToggle.classList.toggle('open', isExpanded);
-  collapseToggle.setAttribute('aria-expanded', String(isExpanded));
-  const advanced = document.getElementById('advanced');
-  if (advanced) {
-    advanced.classList.toggle('open', isExpanded);
-  }
-}
-
 function setTheme(mode) {
   const isDark = mode !== 'light';
   document.body.classList.toggle('dark-mode', isDark);
@@ -580,7 +569,6 @@ async function loadModules(moduleSettings) {
     customTheme,
     startupDefaultEnabled,
     startupSettings,
-    showCompressor,
   } = storageObject || {};
   const isCollapsed = collapsed ?? true;
   const safeSettings = isPlainObject(settings) ? settings : {};
@@ -605,9 +593,6 @@ async function loadModules(moduleSettings) {
     startupToggle.classList.toggle('is-active', enabled);
     startupToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
   }
-
-  const compOpen = showCompressor ?? true;
-  setCompressorOpen(compOpen);
 
   await refreshPresetSlots();
 }

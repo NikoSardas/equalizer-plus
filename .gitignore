@@ -1,0 +1,6 @@
+dist.zip
+/dist
+/node_modules
+/.vscode
+/.DS_Store
+/manifest.json
