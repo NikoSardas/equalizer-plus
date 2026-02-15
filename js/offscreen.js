@@ -294,12 +294,10 @@ function handleOffscreenMessage(message, sender, sendResponse) {
 
     case 'getSavedWindowState':
       if (!capturedTab) {
-        sendResponse({ state: null });
+        sendResponse(null);
         break;
       }
-      sendResponse({
-        state: capturedTab.windowState,
-      });
+      sendResponse(capturedTab.windowState || null);
       break;
   }
 }

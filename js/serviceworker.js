@@ -91,6 +91,9 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
       tabId,
     });
   } catch (err) {
+    if (isMissingReceiverError(err)) {
+      return;
+    }
     handleError('tabRemoved sendMessage failed', err);
   }
 });
@@ -245,14 +248,36 @@ async function verifyOffscreenDoc() {
   }
 }
 
-async function enterFullscreen() {
-  const { id } = await chrome.windows.getCurrent();
-  chrome.windows.update(id, { state: 'fullscreen' });
+async function getWindowIdForTab(tabId) {
+  if (tabId == null) {
+    return null;
+  }
+
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return tab.windowId;
+  } catch (error) {
+    if (isMissingReceiverError(error) || isMissingTabError(error)) {
+      return null;
+    }
+    handleError('Error getting tab window id', error);
+    return null;
+  }
 }
 
-async function exitFullscreen({ windowState }) {
-  const { id } = await chrome.windows.getCurrent();
-  chrome.windows.update(id, { state: windowState });
+async function enterFullscreen(windowId) {
+  if (windowId == null) {
+    return;
+  }
+  await chrome.windows.update(windowId, { state: 'fullscreen' });
+}
+
+async function exitFullscreen({ windowId, windowState }) {
+  if (windowId == null) {
+    return;
+  }
+  const safeState = windowState || 'normal';
+  await chrome.windows.update(windowId, { state: safeState });
 }
 
 async function getSavedWindowState({ windowState, tabId }) {
@@ -278,18 +303,42 @@ async function saveWindowState({ windowState, tabId }) {
 }
 
 async function toggleFullscreen({ fullscreen, tabId }) {
-  const { state } = await chrome.windows.getCurrent();
+  const windowId = await getWindowIdForTab(tabId);
+  if (windowId == null) {
+    return;
+  }
+
+  const { state } = await chrome.windows.get(windowId);
 
   if (fullscreen) {
-    await saveWindowState({ windowState: state, tabId });
-    enterFullscreen();
+    if (state !== 'fullscreen') {
+      await saveWindowState({ windowState: state, tabId });
+      await enterFullscreen(windowId);
+    }
   } else {
-    const savedWindowState = await getSavedWindowState({
+    const savedWindowStateResponse = await getSavedWindowState({
       windowState: state,
       tabId,
     });
-    exitFullscreen({ windowState: savedWindowState });
+    const savedWindowState =
+      typeof savedWindowStateResponse === 'string'
+        ? savedWindowStateResponse
+        : savedWindowStateResponse && savedWindowStateResponse.state;
+    await exitFullscreen({ windowId, windowState: savedWindowState });
   }
+}
+
+function isMissingReceiverError(error) {
+  const message = error && error.message;
+  return (
+    typeof message === 'string' &&
+    message.includes('Could not establish connection. Receiving end does not exist')
+  );
+}
+
+function isMissingTabError(error) {
+  const message = error && error.message;
+  return typeof message === 'string' && message.includes('No tab with id');
 }
 
 function handleError(message = 'An error occurred', error = null) {
