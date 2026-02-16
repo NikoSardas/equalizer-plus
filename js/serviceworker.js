@@ -383,6 +383,11 @@ async function onInstalled() {
 }
 
 async function onUpdated(previousVersion) {
+  const { version: currentVersion } = chrome.runtime.getManifest();
+  if (currentVersion === '1.3.1') {
+    showMajorUpdateReinstallNotice();
+  }
+
   if (previousVersion !== '1.2.3') return;
 
   showUpdateNotification();
@@ -396,6 +401,13 @@ function showInstallNotification() {
   showNotification({
     message:
       'This extension does not collect any user data and is completely free of any malicious code.',
+  });
+}
+
+function showMajorUpdateReinstallNotice() {
+  showNotification({
+    message:
+      'Update 1.3.1 includes major changes. If you notice issues, remove and reinstall Equalizer Plus from the Chrome Web Store.',
   });
 }
 
