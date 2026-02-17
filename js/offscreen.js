@@ -277,6 +277,7 @@ function handleOffscreenMessage(message, sender, sendResponse) {
     case 'tabRemoved':
       if (capturedTabIndex !== -1) {
         capturedTabsArr[capturedTabIndex].stopAudio();
+        capturedTabsArr.splice(capturedTabIndex, 1);
       }
       sendResponse(true);
       break;
@@ -340,10 +341,12 @@ async function fetchStartupSettings() {
 
 function handleError(message = 'An error occurred', error = null) {
   if (error instanceof Error) {
-    throw error;
+    console.error(message, error);
+    return;
   }
 
-  throw new Error(message);
+  console.error(message);
+  return;
 }
 
 async function requestTabAudioStream(streamId) {
@@ -369,6 +372,7 @@ async function getStream(streamId) {
       'Error getting audio stream: ' + (error && error.message),
       error,
     );
+    return null;
   }
 }
 
@@ -396,9 +400,19 @@ async function loadSavedSettings(capturedTabIndex, tabId) {
 }
 
 async function captureTab(streamId, tabId) {
+  const existingCapturedTabIndex = getCapturedTabIndex(tabId);
+  if (existingCapturedTabIndex !== -1) {
+    await loadCapturedTab(existingCapturedTabIndex, tabId);
+    return;
+  }
+
   const { startupSettings, startupDefaultEnabled } = await fetchStartupSettings();
   if (startupDefaultEnabled && isPlainObject(startupSettings)) {
     const stream = await getStream(streamId);
+    if (!stream) {
+      handleError('captureTab: failed to get startup stream');
+      return;
+    }
     capturedTabsArr.push(
       new CapturedAudioObject({
         tabId,
@@ -416,6 +430,10 @@ async function captureTab(streamId, tabId) {
     : await fetchDefaultSettings();
   const safeSettings = fallbackSettings;
   const stream = await getStream(streamId);
+  if (!stream) {
+    handleError('captureTab: failed to get stream');
+    return;
+  }
 
   capturedTabsArr.push(new CapturedAudioObject({
     tabId,

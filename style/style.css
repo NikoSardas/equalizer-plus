@@ -79,6 +79,15 @@ body:not(.dark-mode):not(.custom-theme) .sel:focus {
   background: #e1e1e1;
 }
 
+body:not(.dark-mode) .slot-delete {
+  color: rgba(33, 35, 36, 0.65);
+}
+
+body:not(.dark-mode) .slot-delete:hover,
+body:not(.dark-mode) .slot-delete:focus-visible {
+  color: #212324;
+}
+
 
 #EQapp {
   width: 360px;
@@ -92,7 +101,7 @@ body:not(.dark-mode):not(.custom-theme) .sel:focus {
 #EQapp.save-flash::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 2px 0 0 0;
   border-radius: inherit;
   background: color-mix(in srgb, var(--accent, #f9b43d) 18%, transparent);
   opacity: 0;
@@ -105,8 +114,9 @@ body:not(.dark-mode):not(.custom-theme) .sel:focus {
     box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   }
   50% {
-    box-shadow: 0 0 0 2px var(--accent, #f9b43d),
-      0 0 14px color-mix(in srgb, var(--accent, #f9b43d) 60%, transparent);
+    box-shadow:
+      0 8px 18px color-mix(in srgb, var(--accent, #f9b43d) 42%, transparent),
+      0 0 10px color-mix(in srgb, var(--accent, #f9b43d) 35%, transparent);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
@@ -474,6 +484,22 @@ select:hover {
   align-self: stretch;
 }
 
+.slot-main {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
 .slot-content {
   width: 100%;
   display: flex;
@@ -513,17 +539,17 @@ select:hover {
   left: 10px;
 }
 
-.slot-btn.slot-saved .slot-check {
+.slot-main.slot-saved .slot-check {
   visibility: visible;
   opacity: 1;
 }
 
-.slot-btn .slot-check.hidden {
+.slot-main .slot-check.hidden {
   visibility: hidden;
   opacity: 0;
 }
 
-.slot-btn.slot-saved .slot-save {
+.slot-main.slot-saved .slot-save {
   display: none;
 }
 
@@ -531,6 +557,7 @@ select:hover {
   display: inline-flex !important;
   visibility: hidden;
   opacity: 0;
+  pointer-events: none;
 }
 
 .slot-delete {
@@ -539,17 +566,25 @@ select:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
   border-radius: 6px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1;
-  opacity: 0.8;
+  opacity: 1;
   position: absolute;
   right: 4px;
+  transition: opacity 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .slot-delete i {
   line-height: 1;
-  font-size: 10px;
+  font-size: 12px;
 }
 
  
@@ -558,12 +593,12 @@ select:hover {
   opacity: 1;
 }
 
-.slot-btn.loaded-pulse {
+.slot-main.loaded-pulse {
   animation: loadGlow 0.65s ease;
   position: relative;
 }
 
-.slot-btn.loaded-pulse::after {
+.slot-main.loaded-pulse::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -678,13 +713,14 @@ select:hover {
   background: transparent;
 }
 
-body:not(.dark-mode):not(.custom-theme) .startup-toggle-icon {
-  color: #212324;
+body:not(.dark-mode) .startup-toggle-icon {
+  color: rgba(33, 35, 36, 0.62);
 }
 
-body:not(.dark-mode):not(.custom-theme) .startup-toggle-icon.is-active {
-  color: #8a4e00;
-  box-shadow: none;
+body:not(.dark-mode) .startup-toggle-icon.is-active {
+  color: #ffffff;
+  background: rgba(33, 35, 36, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(33, 35, 36, 0.8);
 }
 
 .eq-row {

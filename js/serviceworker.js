@@ -3,7 +3,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function handleWorkerMessage(message, sender, sendResponse) {
-  const { target, type, tabId, data, slot, settings, enabled } = message;
+  const { target, type, tabId, data, slot, settings } = message;
 
   if (target !== 'worker') return;
   if (!type || typeof type !== 'string') {
@@ -116,7 +116,11 @@ chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
     return;
   }
 
-  await verifyOffscreenDoc();
+  try {
+    await verifyOffscreenDoc();
+  } catch (error) {
+    handleError('Failed to verify offscreen document during install/update', error);
+  }
 
   if (reason === 'update') {
     onUpdated(previousVersion);
@@ -347,7 +351,9 @@ function handleError(message = 'An error occurred', error = null) {
     (typeof message === 'string' ? message : String(message));
   try {
     showNotification({ message: notifyMessage });
-  } catch (e) {}
+  } catch (error) {
+    console.error('Failed to show notification', error);
+  }
 
   if (error instanceof Error) {
     console.error(message, error);
@@ -388,13 +394,12 @@ async function onUpdated(previousVersion) {
     showMajorUpdateReinstallNotice();
   }
 
-  if (previousVersion !== '1.2.3') return;
 
-  showUpdateNotification();
-
-  chrome.storage.sync.clear(() => {
-    initializeStorage();
-  });
+  if (previousVersion === '1.2.3') {
+    chrome.storage.sync.clear(() => {
+      initializeStorage();
+    });
+  }
 }
 
 function showInstallNotification() {
@@ -407,17 +412,10 @@ function showInstallNotification() {
 function showMajorUpdateReinstallNotice() {
   showNotification({
     message:
-      'Update 1.3.1 includes major changes. If you notice issues, remove and reinstall Equalizer Plus from the Chrome Web Store.',
+      'Recent updates included major changes. If you notice issues, remove and reinstall Equalizer Plus from the Chrome Web Store.',
   });
 }
 
-const UPDATE_PAGE_URL = 'https://nikosardas.github.io/eqPlus-pages/V3-Update.html';
-
-function showUpdateNotification() {
-  chrome.windows.create({
-    url: UPDATE_PAGE_URL,
-  });
-}
 
 function initializeStorage() {
   setDefaultSettings();

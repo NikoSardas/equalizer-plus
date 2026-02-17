@@ -1,4 +1,3 @@
-import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,10 +12,9 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
-export default defineConfig([
+export default [
+  ...compat.extends('eslint:recommended'),
   {
-    extends: compat.extends('eslint:recommended', 'prettier'),
-
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -32,4 +30,4 @@ export default defineConfig([
       'no-console': 'off',
     },
   },
-]);
+];

@@ -4,7 +4,7 @@ const closeBtn = document.getElementById('close');
 const monoBtn = document.getElementById('monoBtn');
 const invertBtn = document.getElementById('invertBtn');
 const presetsSelect = document.getElementById('presets');
-const slotButtons = document.querySelectorAll('.slot-btn');
+const slotButtons = document.querySelectorAll('.slot-main');
 const slotDeleteButtons = document.querySelectorAll('.slot-delete');
 const resetBtn = document.getElementById('resetBtn');
 const settingsToggle = document.getElementById('settingsToggle');
@@ -213,21 +213,6 @@ function handlePresetsChange(event) {
   }
 }
 
-function handleSaveClick() {
-  saveSettings();
-}
-
-function flashSlotIndicator(buttonEl) {
-  if (!buttonEl) return;
-  buttonEl.classList.remove('saved-pulse');
-  requestAnimationFrame(() => {
-    buttonEl.classList.add('saved-pulse');
-    setTimeout(() => {
-      buttonEl.classList.remove('saved-pulse');
-    }, 650);
-  });
-}
-
 function flashSlotLoad(buttonEl) {
   if (!buttonEl) return;
   buttonEl.classList.remove('loaded-pulse');
@@ -267,7 +252,7 @@ async function handleSlotClick(event) {
     if (!response || response.success === false) {
       await showNotification('Could not save preset slot.');
     } else {
-      flashSlotIndicator(event.currentTarget);
+      flashSaveUI();
     }
   }
 
@@ -276,6 +261,12 @@ async function handleSlotClick(event) {
 
 async function handleSlotDeleteClick(event) {
   event.stopPropagation();
+  event.preventDefault();
+  const deleteButton = event.currentTarget;
+  const slotButton = deleteButton.closest('.slot-btn');
+  const slotMainButton = slotButton?.querySelector('.slot-main');
+  deleteButton.blur();
+
   const slot = event.currentTarget.dataset.slot;
   if (!slot) return;
 
@@ -290,6 +281,10 @@ async function handleSlotDeleteClick(event) {
   }
 
   await refreshPresetSlots();
+
+  if (slotMainButton) {
+    slotMainButton.focus({ preventScroll: true });
+  }
 }
 
 function handleResetClick() {
@@ -464,7 +459,7 @@ function loadUIListeners() {
   volumeFader.addEventListener('input', ({ target }) => {
     const { value } = target;
 
-    if (value === 0) {
+    if (Number(value) === 0) {
       volumeIcon.classList = 'eqp-volume';
     } else {
       volumeIcon.classList = 'eqp-volume-2';
@@ -495,6 +490,9 @@ function loadUIListeners() {
   });
   slotDeleteButtons.forEach((button) => {
     button.addEventListener('click', handleSlotDeleteClick);
+    button.addEventListener('keydown', (event) => {
+      event.stopPropagation();
+    });
   });
   resetBtn.addEventListener('click', handleResetClick);
   if (settingsToggle && settingsPanel) {
@@ -661,7 +659,9 @@ function updatePanTheme() {
   try {
     panFader.trigger('configure', { fgColor: accent });
     panFader.trigger('change');
-  } catch (error) {}
+  } catch (error) {
+    console.warn('Pan theme update failed', error);
+  }
 }
 
 function setPan(panValue) {
@@ -834,14 +834,6 @@ function changeVolume(volumeValue) {
   setVolumeNumber(volumeValue);
 }
 
-function saveSettings() {
-  chrome.runtime.sendMessage({
-    target: 'offscreen',
-    type: 'saveSettings',
-    tabId,
-  });
-}
-
 async function fetchPresetSlots() {
   const response = await chrome.runtime.sendMessage({
     target: 'worker',
@@ -860,7 +852,9 @@ function updatePresetSlotUI(presetSlots) {
   slotButtons.forEach((button) => {
     const slot = button.dataset.slot;
     const isSaved = Boolean(slot && slots[slot]);
-    const deleteButton = button.querySelector('.slot-delete');
+    const deleteButton = button
+      .closest('.slot-btn')
+      ?.querySelector('.slot-delete');
 
     button.classList.toggle('slot-saved', isSaved);
     if (deleteButton) {
