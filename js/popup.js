@@ -3,7 +3,11 @@ const fadersGrp = document.querySelectorAll('.fadersGrp input');
 const closeBtn = document.getElementById('close');
 const monoBtn = document.getElementById('monoBtn');
 const invertBtn = document.getElementById('invertBtn');
-const presetsSelect = document.getElementById('presets');
+const presetDropdown = document.getElementById('presetDropdown');
+const presetsTrigger = document.getElementById('presetsTrigger');
+const presetsLabel = document.getElementById('presetsLabel');
+const presetsMenu = document.getElementById('presetsMenu');
+const presetOptions = document.querySelectorAll('.preset-option');
 const slotButtons = document.querySelectorAll('.slot-main');
 const slotDeleteButtons = document.querySelectorAll('.slot-delete');
 const resetBtn = document.getElementById('resetBtn');
@@ -61,9 +65,6 @@ function clearButtonFocusOnMouseUp() {
       return;
     }
     const activeEl = document.activeElement;
-    if (activeEl && activeEl.tagName === 'SELECT') {
-      return;
-    }
     if (
       activeEl &&
       activeEl !== document.body &&
@@ -205,12 +206,91 @@ async function handleInvertClick() {
   setInvert(!isInverted);
 }
 
-function handlePresetsChange(event) {
+function closePresetsMenu() {
+  if (!presetsMenu || !presetsTrigger) return;
+  presetsMenu.classList.add('hidden');
+  presetsTrigger.setAttribute('aria-expanded', 'false');
+}
+
+function openPresetsMenu() {
+  if (!presetsMenu || !presetsTrigger) return;
+  presetsMenu.classList.remove('hidden');
+  presetsTrigger.setAttribute('aria-expanded', 'true');
+}
+
+function setPresetsLabel(label) {
+  if (!presetsLabel) return;
+  presetsLabel.textContent = label;
+}
+
+function setSelectedPresetOption(selectedPreset) {
+  presetOptions.forEach((optionEl) => {
+    const isSelected = optionEl.dataset.preset === selectedPreset;
+    optionEl.classList.toggle('is-selected', isSelected);
+    optionEl.setAttribute('aria-selected', String(isSelected));
+  });
+}
+
+function handlePresetOptionClick(event) {
+  const optionEl = event.currentTarget;
+  const preset = optionEl.dataset.preset;
+  if (!preset) return;
   try {
-    loadEqPreset(event.target.value);
+    loadEqPreset(preset);
+    setPresetsLabel(optionEl.textContent.trim());
+    setSelectedPresetOption(preset);
+    closePresetsMenu();
   } catch (error) {
     console.warn('Preset load failed:', error);
   }
+}
+
+function handlePresetsTriggerClick(event) {
+  event.stopPropagation();
+  if (!presetsMenu || !presetsTrigger) return;
+  const isOpen = !presetsMenu.classList.contains('hidden');
+  if (isOpen) {
+    closePresetsMenu();
+    return;
+  }
+  openPresetsMenu();
+}
+
+function handlePresetsTriggerKeydown(event) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closePresetsMenu();
+    return;
+  }
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    handlePresetsTriggerClick(event);
+    return;
+  }
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    openPresetsMenu();
+    const firstOption = presetsMenu?.querySelector('.preset-option');
+    if (firstOption) {
+      firstOption.focus();
+    }
+  }
+}
+
+function handlePresetOptionKeydown(event) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closePresetsMenu();
+    presetsTrigger?.focus({ preventScroll: true });
+  }
+}
+
+function handleDocumentClick(event) {
+  if (!presetDropdown) return;
+  if (presetDropdown.contains(event.target)) {
+    return;
+  }
+  closePresetsMenu();
 }
 
 function flashSlotLoad(buttonEl) {
@@ -294,7 +374,8 @@ function handleResetClick() {
     tabId,
   });
 
-  presetsSelect.value = DEFAULT_PRESET_LABEL;
+  setPresetsLabel(DEFAULT_PRESET_LABEL);
+  setSelectedPresetOption(null);
 }
 
 function handleSettingsToggleClick() {
@@ -484,7 +565,15 @@ function loadUIListeners() {
   closeBtn.addEventListener('click', handleCloseClick);
   monoBtn.addEventListener('click', handleMonoClick);
   invertBtn.addEventListener('click', handleInvertClick);
-  presetsSelect.addEventListener('change', handlePresetsChange);
+  if (presetsTrigger) {
+    presetsTrigger.addEventListener('click', handlePresetsTriggerClick);
+    presetsTrigger.addEventListener('keydown', handlePresetsTriggerKeydown);
+  }
+  presetOptions.forEach((optionEl) => {
+    optionEl.addEventListener('click', handlePresetOptionClick);
+    optionEl.addEventListener('keydown', handlePresetOptionKeydown);
+  });
+  document.addEventListener('click', handleDocumentClick);
   slotButtons.forEach((button) => {
     button.addEventListener('click', handleSlotClick);
   });

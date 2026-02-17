@@ -408,6 +408,11 @@ async function captureTab(streamId, tabId) {
 
   const { startupSettings, startupDefaultEnabled } = await fetchStartupSettings();
   if (startupDefaultEnabled && isPlainObject(startupSettings)) {
+    const defaultSettings = await fetchDefaultSettings();
+    const safeStartupSettings = buildSafeSettings({
+      defaultSettings,
+      incomingSettings: startupSettings,
+    });
     const stream = await getStream(streamId);
     if (!stream) {
       handleError('captureTab: failed to get startup stream');
@@ -417,18 +422,19 @@ async function captureTab(streamId, tabId) {
       new CapturedAudioObject({
         tabId,
         stream,
-        settings: startupSettings,
+        settings: safeStartupSettings,
       }),
     );
-    sendAudioSettingsToPopup(startupSettings, tabId);
+    sendAudioSettingsToPopup(safeStartupSettings, tabId);
     return;
   }
 
   const { settings } = await fetchSavedSettings();
-  const fallbackSettings = isPlainObject(settings)
-    ? settings
-    : await fetchDefaultSettings();
-  const safeSettings = fallbackSettings;
+  const defaultSettings = await fetchDefaultSettings();
+  const safeSettings = buildSafeSettings({
+    defaultSettings,
+    incomingSettings: settings,
+  });
   const stream = await getStream(streamId);
   if (!stream) {
     handleError('captureTab: failed to get stream');
@@ -517,6 +523,26 @@ function powerOff(capturedTabIndex) {
 
 function getCapturedTabIndex(tabId) {
   return capturedTabsArr.findIndex(({ tabId: capturedTabId }) => capturedTabId === tabId);
+}
+
+function buildSafeSettings({ defaultSettings, incomingSettings }) {
+  const safeDefaults = isPlainObject(defaultSettings) ? defaultSettings : {};
+  const safeIncoming = isPlainObject(incomingSettings) ? incomingSettings : {};
+  const defaultCompressor = isPlainObject(safeDefaults.compressor)
+    ? safeDefaults.compressor
+    : {};
+  const incomingCompressor = isPlainObject(safeIncoming.compressor)
+    ? safeIncoming.compressor
+    : {};
+  const defaultEq = isPlainObject(safeDefaults.eq) ? safeDefaults.eq : {};
+  const incomingEq = isPlainObject(safeIncoming.eq) ? safeIncoming.eq : {};
+
+  return {
+    ...safeDefaults,
+    ...safeIncoming,
+    compressor: { ...defaultCompressor, ...incomingCompressor },
+    eq: { ...defaultEq, ...incomingEq },
+  };
 }
 
 class CapturedAudioObject {
@@ -782,10 +808,7 @@ class CapturedAudioObject {
     }
 
     const audioTracks = streamOutput.mediaStream?.getAudioTracks() || [];
-
-    if (audioTracks.length > 0) {
-      audioTracks[0].stop();
-    }
+    audioTracks.forEach((track) => track.stop());
 
     audioCtx.close();
     return true;

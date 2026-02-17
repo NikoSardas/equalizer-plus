@@ -12,7 +12,9 @@ function handleWorkerMessage(message, sender, sendResponse) {
 
   switch (type) {
     case 'popupReady':
-      onPopupReady(tabId);
+      onPopupReady(tabId).catch((error) => {
+        handleError('popupReady failed', error);
+      });
       break;
 
     case 'getSavedSettings':
@@ -32,11 +34,15 @@ function handleWorkerMessage(message, sender, sendResponse) {
       return true;
 
     case 'setStartupSettings':
-      setStartupSettings(settings);
+      setStartupSettings(settings).catch((error) => {
+        handleError('setStartupSettings failed', error);
+      });
       break;
 
     case 'clearStartupSettings':
-      clearStartupSettings();
+      clearStartupSettings().catch((error) => {
+        handleError('clearStartupSettings failed', error);
+      });
       break;
 
     case 'getPresetSlots':
@@ -46,21 +52,27 @@ function handleWorkerMessage(message, sender, sendResponse) {
       return true;
 
     case 'savePresetSlot':
-      savePresetSlot(slot, settings);
+      savePresetSlot(slot, settings).catch((error) => {
+        handleError('savePresetSlot failed', error);
+      });
       break;
 
     case 'deletePresetSlot':
-      deletePresetSlot(slot);
+      deletePresetSlot(slot).catch((error) => {
+        handleError('deletePresetSlot failed', error);
+      });
       break;
 
     case 'deleteSavedSettings':
-      setDefaultSettings();
-      setSavedState(false);
+      Promise.all([setDefaultSettings(), setSavedState(false)]).catch((error) => {
+        handleError('deleteSavedSettings failed', error);
+      });
       break;
 
     case 'saveToStorage':
-      saveSettings(data);
-      setSavedState(true);
+      Promise.all([saveSettings(data), setSavedState(true)]).catch((error) => {
+        handleError('saveToStorage failed', error);
+      });
       break;
 
     default:
@@ -70,17 +82,21 @@ function handleWorkerMessage(message, sender, sendResponse) {
 }
 
 async function onPopupReady(tabId) {
-  await verifyOffscreenDoc();
+  try {
+    await verifyOffscreenDoc();
 
-  const capturedTabIndex = await getCapturedTabIndex(tabId);
-  const tabIsCaptured = capturedTabIndex !== -1;
+    const capturedTabIndex = await getCapturedTabIndex(tabId);
+    const tabIsCaptured = capturedTabIndex !== -1;
 
-  chrome.runtime.sendMessage({
-    target: 'offscreen',
-    type: tabIsCaptured ? 'loadCapturedTab' : 'captureTab',
-    streamId: !tabIsCaptured && (await getStreamId(tabId)),
-    tabId,
-  });
+    await chrome.runtime.sendMessage({
+      target: 'offscreen',
+      type: tabIsCaptured ? 'loadCapturedTab' : 'captureTab',
+      streamId: !tabIsCaptured && (await getStreamId(tabId)),
+      tabId,
+    });
+  } catch (error) {
+    handleError('onPopupReady failed', error);
+  }
 }
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {

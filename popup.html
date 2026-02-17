@@ -66,40 +66,43 @@
       <div class="options-bar block" id="bottom">
         <div class="_inner">
           <div class="col sel-col">
-            <select class="eqGrp info sel" id="presets" aria-label="Presets" title="Built-in presets">
-              <option id="presetPlaceholder" disabled selected hidden>
-                Presets
-              </option>
-              <option id="acoustic" value="acoustic">Acoustic</option>
-              <option id="bassBooster" value="bassBooster">Bass Booster</option>
-              <option id="bassReducer" value="bassReducer">Bass Reducer</option>
-              <option id="classical" value="classical">Classical</option>
-              <option id="dance" value="dance">Dance</option>
-              <option id="deep" value="deep">Deep</option>
-              <option id="electronic" value="electronic">Electronic</option>
-              <option id="flat" value="flat">Flat</option>
-              <option id="hiphop" value="hiphop">Hiphop</option>
-              <option id="jazz" value="jazz">Jazz</option>
-              <option id="latin" value="latin">Latin</option>
-              <option id="loudness" value="loudness">Loudness</option>
-              <option id="lounge" value="lounge">Lounge</option>
-              <option id="piano" value="piano">Piano</option>
-              <option id="rnb" value="rnb">RnB</option>
-              <option id="rock" value="rock">Rock</option>
-              <option id="smallSpeakers" value="smallSpeakers">
-                Small Speakers
-              </option>
-              <option id="spokenWord" value="spokenWord">Spoken Word</option>
-              <option id="trebleBooster" value="trebleBooster">
-                Treble Booster
-              </option>
-              <option id="trebleReducer" value="trebleReducer">
-                Treble Reducer
-              </option>
-              <option id="vocalBooster" value="vocalBooster">
-                Vocal Booster
-              </option>
-            </select>
+            <div class="preset-dropdown" id="presetDropdown">
+              <button
+                class="eqGrp info sel preset-trigger"
+                id="presetsTrigger"
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="presetsMenu"
+                title="Built-in presets"
+              >
+                <span id="presetsLabel">Presets</span>
+                <i class="eqp-chevron-down" aria-hidden="true"></i>
+              </button>
+              <div class="preset-menu hidden" id="presetsMenu" role="listbox" aria-label="Presets">
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="acoustic">Acoustic</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="bassBooster">Bass Booster</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="bassReducer">Bass Reducer</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="classical">Classical</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="dance">Dance</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="deep">Deep</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="electronic">Electronic</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="flat">Flat</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="hiphop">Hiphop</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="jazz">Jazz</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="latin">Latin</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="loudness">Loudness</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="lounge">Lounge</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="piano">Piano</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="rnb">RnB</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="rock">Rock</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="smallSpeakers">Small Speakers</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="spokenWord">Spoken Word</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="trebleBooster">Treble Booster</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="trebleReducer">Treble Reducer</button>
+                <button class="preset-option" type="button" role="option" aria-selected="false" data-preset="vocalBooster">Vocal Booster</button>
+              </div>
+            </div>
           </div>
           <button class="info btn" id="resetBtn" title="Reset all settings">
             <i class="eqp-refresh-cw icon-left" aria-hidden="true"></i> Reset

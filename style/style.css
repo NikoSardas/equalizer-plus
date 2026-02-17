@@ -459,10 +459,81 @@ select:hover {
 
 .options-bar .sel-col {
   flex: 2;
+  position: relative;
 }
 
 .options-bar ._inner > button {
   flex: 1;
+}
+
+.preset-dropdown {
+  position: relative;
+}
+
+.preset-trigger {
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preset-trigger i {
+  font-size: 13px;
+  transition: transform 0.2s ease;
+}
+
+.preset-trigger[aria-expanded='true'] i {
+  transform: rotate(180deg);
+}
+
+.preset-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  z-index: 30;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, var(--bg1, #212324) 88%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.preset-option {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 8px 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.preset-option:hover,
+.preset-option:focus-visible {
+  background: color-mix(in srgb, var(--accent, #f9b43d) 26%, transparent);
+  color: #fff;
+}
+
+.preset-option.is-selected {
+  color: var(--accent, #f9b43d);
+  font-weight: 700;
+}
+
+body:not(.dark-mode) .preset-menu {
+  background: #f3f3f3;
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+body:not(.dark-mode) .preset-option:hover,
+body:not(.dark-mode) .preset-option:focus-visible {
+  background: #e1e1e1;
+  color: #212324;
 }
 
 .options-bar .quick-actions {
