@@ -286,11 +286,25 @@ function handlePresetOptionKeydown(event) {
 }
 
 function handleDocumentClick(event) {
-  if (!presetDropdown) return;
-  if (presetDropdown.contains(event.target)) {
-    return;
+  const clickTarget = event.target;
+
+  if (presetDropdown && !presetDropdown.contains(clickTarget)) {
+    closePresetsMenu();
   }
-  closePresetsMenu();
+
+  const settingsPanelVisible =
+    settingsPanel && !settingsPanel.classList.contains('hidden');
+  const clickedInsideSettingsPanel = settingsPanel?.contains(clickTarget);
+  const clickedSettingsToggle = settingsToggle?.contains(clickTarget);
+
+  if (
+    settingsPanelVisible &&
+    !clickedInsideSettingsPanel &&
+    !clickedSettingsToggle
+  ) {
+    settingsPanel.classList.add('hidden');
+    settingsPanel.setAttribute('aria-hidden', 'true');
+  }
 }
 
 function flashSlotLoad(buttonEl) {

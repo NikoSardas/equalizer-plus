@@ -384,7 +384,7 @@ button:focus:not(:focus-visible) {
 
 /* Block and header styles */
 .block {
-  padding: 10px;
+  padding: 8px;
 }
 
 .block + .block {
@@ -442,7 +442,7 @@ select:hover {
 }
 
 .tab {
-  padding: 20px 15px;
+  padding: 16px 15px;
   border-radius: 3px;
   background: #f3f3f3;
 }
@@ -742,7 +742,7 @@ body:not(.dark-mode) .preset-option:focus-visible {
 #volumeDiv .volume {
   display: flex;
   align-items: center;
-  margin: 17px 0 10px 0;
+  margin: 10px 0 6px 0;
 }
 
 #volumeDiv .volume i {
@@ -797,19 +797,19 @@ body:not(.dark-mode) .startup-toggle-icon.is-active {
 .eq-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .adv-row {
   display: flex;
   flex-wrap: wrap;
-  margin: -10px;
+  margin: -8px -10px -6px;
 }
 
 .adv-row .range-h {
   max-width: 50%;
   flex: 0 0 50%;
-  padding: 5px 10px;
+  padding: 4px 10px;
   display: block;
   font-size: 10px;
 }
