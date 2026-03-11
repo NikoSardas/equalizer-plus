@@ -4,3 +4,4 @@ dist.zip
 /.vscode
 /.DS_Store
 /manifest.json
+assets/.DS_Store

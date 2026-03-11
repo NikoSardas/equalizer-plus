@@ -88,7 +88,7 @@ async function onPopupReady(tabId) {
     const capturedTabIndex = await getCapturedTabIndex(tabId);
     const tabIsCaptured = capturedTabIndex !== -1;
 
-    await chrome.runtime.sendMessage({
+    await sendOffscreenMessageWithRetry({
       target: 'offscreen',
       type: tabIsCaptured ? 'loadCapturedTab' : 'captureTab',
       streamId: !tabIsCaptured && (await getStreamId(tabId)),
@@ -314,7 +314,7 @@ async function getSavedWindowState({ windowState, tabId }) {
 }
 
 async function saveWindowState({ windowState, tabId }) {
-  await chrome.runtime.sendMessage({
+  await sendOffscreenMessageWithRetry({
     target: 'offscreen',
     type: 'saveWindowState',
     state: windowState,
@@ -445,9 +445,33 @@ function initializeStorage() {
 }
 
 async function getCapturedTabIndex(tabId) {
-  return await chrome.runtime.sendMessage({
+  return await sendOffscreenMessageWithRetry({
     target: 'offscreen',
     type: 'getIndex',
     tabId,
+  });
+}
+
+async function sendOffscreenMessageWithRetry(message, retryCount = 4) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retryCount; attempt += 1) {
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (error) {
+      lastError = error;
+      if (!isMissingReceiverError(error) || attempt === retryCount) {
+        throw error;
+      }
+      await delay(75 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
+function delay(durationMs) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, durationMs);
   });
 }
