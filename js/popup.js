@@ -97,15 +97,17 @@ function displayCurrentVersion() {
 
 
 function setPopupListener(currentTabId) {
-  chrome.runtime.onMessage.addListener(async (message) => {
+  chrome.runtime.onMessage.addListener((message) => {
     const { tabId, target, settings, type } = message;
 
     if (currentTabId !== tabId) return;
     if (target !== 'popup') return;
 
     if (type === 'load') {
-      await loadModules(settings);
-      showUI();
+      (async () => {
+        await loadModules(settings);
+        showUI();
+      })();
     }
   });
 }
