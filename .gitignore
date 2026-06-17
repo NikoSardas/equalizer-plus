@@ -5,3 +5,4 @@ dist.zip
 /.DS_Store
 /manifest.json
 assets/.DS_Store
+js/.DS_Store
